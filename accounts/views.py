@@ -8,6 +8,7 @@ from .serializers import (
     LocationSerializer, IndustrySerializer, JobSeekerPreferencesSerializer,
     UserRegistrationSerializer, SkillLevelSerializer
 )
+from rest_framework.decorators import api_view
 
 User = get_user_model()
 
@@ -37,6 +38,11 @@ class JobSeekerDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = JobSeekerSerializer
     permission_classes = (permissions.IsAuthenticated,)
     lookup_field = 'slug'
+
+@api_view(['GET'])
+def is_jobseeker(request):
+    is_jobseeker = JobSeeker.objects.filter(user=request.user).exists()
+    return Response({'is_jobseeker': is_jobseeker})
 
 class CompanyListCreateView(generics.ListCreateAPIView):
     queryset = Company.objects.all()

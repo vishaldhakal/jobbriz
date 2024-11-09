@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     RegisterView, UserDetailView, JobSeekerListCreateView, JobSeekerDetailView,
     CompanyListCreateView, CompanyDetailView, LocationListCreateView,
-    IndustryListCreateView, JobSeekerPreferencesDetailView
+    IndustryListCreateView, JobSeekerPreferencesDetailView, is_jobseeker
 )
 
 app_name = 'accounts'
@@ -18,6 +18,7 @@ urlpatterns = [
     path('user/profile/', UserDetailView.as_view(), name='user-detail'),
     
     # JobSeeker URLs
+    path('is-jobseeker/', is_jobseeker, name='is-jobseeker'),
     path('jobseekers/', JobSeekerListCreateView.as_view(), name='jobseeker-list'),
     path('jobseekers/<slug:slug>/', JobSeekerDetailView.as_view(), name='jobseeker-detail'),
     path('jobseeker/preferences/', JobSeekerPreferencesDetailView.as_view(), name='jobseeker-preferences'),
