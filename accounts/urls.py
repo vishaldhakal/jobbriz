@@ -3,7 +3,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import (
     RegisterView, UserDetailView, JobSeekerListCreateView, JobSeekerDetailView,
     CompanyListCreateView, CompanyDetailView, LocationListCreateView,
-    IndustryListCreateView, JobSeekerPreferencesDetailView, is_jobseeker
+    IndustryListCreateView, LanguageListCreateView, CertificationListCreateView,
+    EducationListCreateView, CareerHistoryListCreateView, JobSeekerSkillListCreateView,
+    is_jobseeker, is_company
 )
 
 app_name = 'accounts'
@@ -21,9 +23,9 @@ urlpatterns = [
     path('is-jobseeker/', is_jobseeker, name='is-jobseeker'),
     path('jobseekers/', JobSeekerListCreateView.as_view(), name='jobseeker-list'),
     path('jobseekers/<slug:slug>/', JobSeekerDetailView.as_view(), name='jobseeker-detail'),
-    path('jobseeker/preferences/', JobSeekerPreferencesDetailView.as_view(), name='jobseeker-preferences'),
     
     # Company URLs
+    path('is-company/', is_company, name='is-company'),
     path('companies/', CompanyListCreateView.as_view(), name='company-list'),
     path('companies/<slug:slug>/', CompanyDetailView.as_view(), name='company-detail'),
     
@@ -32,4 +34,11 @@ urlpatterns = [
     
     # Industry URLs
     path('industries/', IndustryListCreateView.as_view(), name='industry-list'),
+    
+    # Additional Model URLs
+    path('languages/', LanguageListCreateView.as_view(), name='language-list'),
+    path('certifications/', CertificationListCreateView.as_view(), name='certification-list'),
+    path('education/', EducationListCreateView.as_view(), name='education-list'),
+    path('career-history/', CareerHistoryListCreateView.as_view(), name='career-history-list'),
+    path('jobseeker-skills/', JobSeekerSkillListCreateView.as_view(), name='jobseeker-skill-list'),
 ] 

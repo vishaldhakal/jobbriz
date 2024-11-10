@@ -37,9 +37,30 @@ class User(AbstractUser):
         help_text=_('Specific permissions for this user.')
     )
 
+class JobSeekerSkill(models.Model):
+    name = models.CharField(max_length=50)
 
-class JobSeeker(models.Model):
-    EDUCATION_CHOICES = [
+    def __str__(self):
+        return self.name
+    
+class Language(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+class Certification(models.Model):
+    name = models.CharField(max_length=50)
+    issuing_organisation = models.CharField(max_length=50)
+    issue_date = models.DateField(blank=True, null=True)
+    expiry_date = models.DateField(blank=True, null=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+class Education(models.Model):
+    COURSE_OR_QUALIFICATION_CHOICES = [
         ('General Literate', 'General Literate'),
         ('Below SLC', 'Below SLC'),
         ('+2', '+2'),
@@ -51,6 +72,26 @@ class JobSeeker(models.Model):
         ('No Education', 'No Education'),
     ]
 
+    course_or_qualification = models.CharField(max_length=50, choices=COURSE_OR_QUALIFICATION_CHOICES)
+    institution = models.CharField(max_length=50)
+    year_of_completion = models.DateField(blank=True, null=True)
+    course_highlights = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.course_or_qualification
+    
+class Skill(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+class Location(SlugMixin, models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    description = models.TextField()
+
+class JobSeeker(models.Model):
     LEVEL_CHOICES = [
         ('RPL', 'RPL'),
         ('Level 1', 'Level 1'),
@@ -64,13 +105,28 @@ class JobSeeker(models.Model):
         ('None', 'None'),
     ]
 
+    AVAILABILITY_CHOICES = [
+        ('Full Time', 'Full Time'),
+        ('Part Time', 'Part Time'),
+        ('Contract', 'Contract'),
+        ('Internship', 'Internship'),
+        ('All', 'All'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     cv = models.FileField(upload_to='cvs/')
-    skill_levels = models.ManyToManyField('SkillLevel')
-    education = models.CharField(max_length=20, choices=EDUCATION_CHOICES)
+    skill_levels = models.CharField(max_length=200, choices=LEVEL_CHOICES,default="None")
+    education = models.ManyToManyField(Education)
     preferred_unit_groups = models.ManyToManyField('job.UnitGroup')
     work_experience = models.PositiveIntegerField(default=0)
-    certifications = models.TextField(blank=True)
+    preferred_locations = models.ManyToManyField(Location)
+    preferred_salary_range_from = models.IntegerField(default=0)
+    preferred_salary_range_to = models.IntegerField(default=0)
+    remote_work_preference = models.BooleanField(default=False)
+    bio = models.TextField(blank=True)
+    availability = models.CharField(max_length=50, choices=AVAILABILITY_CHOICES)
+    certifications = models.ManyToManyField(Certification)
+    languages = models.ManyToManyField(Language)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     
     def __str__(self):
@@ -88,18 +144,16 @@ class JobSeeker(models.Model):
             self.slug = slug
         super().save(*args, **kwargs)
 
+class CareerHistory(models.Model):
+    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
+    company_name = models.CharField(max_length=50)
+    job_title = models.CharField(max_length=50)
+    start_date = models.DateField()
+    end_date = models.DateField(blank=True, null=True)
+    description = models.TextField(blank=True)
 
-class Location(SlugMixin, models.Model):
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)
-    description = models.TextField()
-
-class JobSeekerPreferences(models.Model):
-    job_seeker = models.OneToOneField(JobSeeker, on_delete=models.CASCADE)
-    preferred_locations = models.ManyToManyField(Location, related_name='job_seeker_preferences')
-    preferred_salary_range_from = models.IntegerField(default=0)
-    preferred_salary_range_to = models.IntegerField(default=0)
-    remote_work_preference = models.BooleanField(default=False)
+    def __str__(self):
+        return self.job_title
 
 class Industry(models.Model):
     name = models.CharField(max_length=255)
@@ -117,7 +171,7 @@ class Industry(models.Model):
     class Meta:
         verbose_name_plural = 'Industries'
 
-class Company(SlugMixin, models.Model):
+class Company(models.Model):
     COMPANY_SIZE_CHOICES = [
         ('1-10', '1-10 employees'),
         ('11-50', '11-50 employees'),
@@ -145,13 +199,18 @@ class Company(SlugMixin, models.Model):
         verbose_name = _('Company')
         verbose_name_plural = _('Companies')
         ordering = ['company_name']
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.user.username)
+            slug = base_slug
+            counter = 1
+            # Check if slug exists and generate a unique one
+            while Company.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.company_name
-
-class SkillLevel(models.Model):
-    name = models.CharField(max_length=50)
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.name

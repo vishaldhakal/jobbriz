@@ -7,7 +7,6 @@ class SlugMixin:
             base_slug = slugify(self.title)
             slug = base_slug
             counter = 1
-            # Get the model class dynamically
             model = self.__class__
             while model.objects.filter(slug=slug).exists():
                 slug = f"{base_slug}-{counter}"
@@ -62,6 +61,13 @@ class UnitGroup(SlugMixin, models.Model):
         return f"{self.code} - {self.title}"
 
 class JobPost(SlugMixin, models.Model):
+    STATUS_CHOICES = [
+        ('Draft', 'Draft'),
+        ('Published', 'Published'),
+        ('Expired', 'Expired'),
+        ('Closed', 'Closed'),
+    ]
+    
     EDUCATION_CHOICES = [
         ('General Literate', 'General Literate'),
         ('Below SLC', 'Below SLC'),
@@ -92,6 +98,7 @@ class JobPost(SlugMixin, models.Model):
         ('Part Time', 'Part Time'),
         ('Contract', 'Contract'),
         ('Internship', 'Internship'),
+        ('All', 'All'),
     ]
 
     company = models.ForeignKey('accounts.Company', on_delete=models.CASCADE)
@@ -99,26 +106,39 @@ class JobPost(SlugMixin, models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     unit_group = models.ForeignKey(UnitGroup, on_delete=models.CASCADE)
     required_skill_level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='None')
-    required_education = models.CharField(max_length=20, choices=EDUCATION_CHOICES,default='No Education')
+    required_education = models.CharField(max_length=20, choices=EDUCATION_CHOICES, default='No Education')
     description = models.TextField()
     responsibilities = models.TextField()
+    show_salary = models.BooleanField(default=True)
     requirements = models.TextField()
     salary_range_min = models.DecimalField(max_digits=10, decimal_places=2)
     salary_range_max = models.DecimalField(max_digits=10, decimal_places=2)
     location = models.ManyToManyField('accounts.Location', related_name='job_posts')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     is_active = models.BooleanField(default=True)
     posted_date = models.DateTimeField(auto_now_add=True)
     deadline = models.DateTimeField()
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES)
+    views_count = models.PositiveIntegerField(default=0)
+    applications_count = models.PositiveIntegerField(default=0)
     
     def __str__(self):
         return f"{self.title} at {self.company.company_name}"
 
 class JobApplication(models.Model):
-    job = models.ForeignKey(JobPost, on_delete=models.CASCADE)
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('reviewed', 'Reviewed'),
+        ('shortlisted', 'Shortlisted'),
+        ('rejected', 'Rejected'),
+        ('hired', 'Hired'),
+    ]
+    
+    job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name='applications')
     applicant = models.ForeignKey('accounts.JobSeeker', on_delete=models.CASCADE)
     applied_date = models.DateTimeField(auto_now_add=True)
     cover_letter = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
@@ -127,9 +147,15 @@ class JobApplication(models.Model):
     def __str__(self):
         return f"Application for {self.job.title} by {self.applicant.user.username}"
     
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Only increment on creation
+            self.job.applications_count = models.F('applications_count') + 1
+            self.job.save()
+        super().save(*args, **kwargs)
+
 class SavedJob(models.Model):
-    job = models.ForeignKey(JobPost, on_delete=models.CASCADE)
-    job_seeker = models.ForeignKey('accounts.JobSeeker', on_delete=models.CASCADE)
+    job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name='saved_by')
+    job_seeker = models.ForeignKey('accounts.JobSeeker', on_delete=models.CASCADE, related_name='saved_jobs')
     saved_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:

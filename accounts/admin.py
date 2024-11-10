@@ -2,10 +2,10 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from unfold.admin import ModelAdmin
 from .models import (
-    User, JobSeeker, Location, JobSeekerPreferences,
-    Industry, Company, SkillLevel
+    User, JobSeeker, Location, Industry, Company,
+    Language, Certification, Education, CareerHistory,
+    JobSeekerSkill, Skill
 )
-from django.utils.text import slugify
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -23,16 +23,12 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(JobSeeker)
 class JobSeekerAdmin(ModelAdmin):
-    list_display = ('user', 'education', 'work_experience', 'get_skills')
-    list_filter = ('education', 'skill_levels')
+    list_display = ('user', 'work_experience', 'availability')
+    list_filter = ('availability', 'skill_levels')
     search_fields = ('user__username', 'user__email')
     raw_id_fields = ('user',)
-    filter_horizontal = ('skill_levels', 'preferred_unit_groups')
+    filter_horizontal = ('education', 'certifications', 'languages', 'preferred_locations')
     readonly_fields = ('slug',)
-    
-    def get_skills(self, obj):
-        return ", ".join([skill.name for skill in obj.skill_levels.all()])
-    get_skills.short_description = 'Skills'
 
 @admin.register(Location)
 class LocationAdmin(ModelAdmin):
@@ -40,28 +36,11 @@ class LocationAdmin(ModelAdmin):
     search_fields = ('name',)
     readonly_fields = ('slug',)
 
-@admin.register(JobSeekerPreferences)
-class JobSeekerPreferencesAdmin(ModelAdmin):
-    list_display = ('job_seeker', 'preferred_salary_range_from', 'preferred_salary_range_to', 'remote_work_preference')
-    list_filter = ('remote_work_preference',)
-    search_fields = ('job_seeker__user__username',)
-    filter_horizontal = ('preferred_locations',)
-
 @admin.register(Industry)
 class IndustryAdmin(ModelAdmin):
     list_display = ('name', 'description')
     search_fields = ('name',)
-    
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'description')
-        }),
-    )
-
-    def save_model(self, request, obj, form, change):
-        if not obj.slug:
-            obj.slug = slugify(obj.name)
-        super().save_model(request, obj, form, change)
+    readonly_fields = ('slug',)
 
 @admin.register(Company)
 class CompanyAdmin(ModelAdmin):
@@ -89,7 +68,35 @@ class CompanyAdmin(ModelAdmin):
         }),
     )
 
-@admin.register(SkillLevel)
-class SkillLevelAdmin(ModelAdmin):
+@admin.register(Language)
+class LanguageAdmin(ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+@admin.register(Certification)
+class CertificationAdmin(ModelAdmin):
+    list_display = ('name', 'issuing_organisation', 'issue_date', 'expiry_date')
+    search_fields = ('name', 'issuing_organisation')
+    list_filter = ('issue_date', 'expiry_date')
+
+@admin.register(Education)
+class EducationAdmin(ModelAdmin):
+    list_display = ('course_or_qualification', 'institution', 'year_of_completion')
+    search_fields = ('institution',)
+    list_filter = ('course_or_qualification',)
+
+@admin.register(CareerHistory)
+class CareerHistoryAdmin(ModelAdmin):
+    list_display = ('job_seeker', 'company_name', 'job_title', 'start_date', 'end_date')
+    search_fields = ('company_name', 'job_title')
+    list_filter = ('start_date', 'end_date')
+
+@admin.register(JobSeekerSkill)
+class JobSeekerSkillAdmin(ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+@admin.register(Skill)
+class SkillAdmin(ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)

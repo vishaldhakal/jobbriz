@@ -67,21 +67,22 @@ class UnitGroupAdmin(ModelAdmin):
 
 @admin.register(JobPost)
 class JobPostAdmin(ModelAdmin):
-    list_display = ('title', 'company', 'unit_group', 'employment_type', 
-                   'required_skill_level', 'is_active', 'posted_date', 'deadline')
-    list_filter = ('is_active', 'employment_type', 'required_skill_level', 
+    list_display = ('title', 'company', 'status', 'employment_type', 
+                   'required_skill_level', 'posted_date', 'deadline', 'views_count', 
+                   'applications_count')
+    list_filter = ('status', 'employment_type', 'required_skill_level', 
                   'required_education', 'company')
     search_fields = ('title', 'company__company_name', 'description')
-    readonly_fields = ('slug', 'posted_date')
+    readonly_fields = ('slug', 'posted_date', 'views_count', 'applications_count')
     autocomplete_fields = ['company', 'unit_group', 'location']
     date_hierarchy = 'posted_date'
-    list_editable = ['is_active']
+    list_editable = ['status']
     
     fieldsets = (
         ('Basic Information', {
             'fields': (
                 'company', 'title', 'slug', 'unit_group', 
-                'description', 'posted_date'
+                'description', 'posted_date', 'status'
             )
         }),
         ('Requirements', {
@@ -91,17 +92,24 @@ class JobPostAdmin(ModelAdmin):
             )
         }),
         ('Compensation & Location', {
-            'fields': ('salary_range_min', 'salary_range_max', 'location')
+            'fields': (
+                'show_salary', 'salary_range_min', 'salary_range_max', 
+                'location'
+            )
         }),
         ('Job Details', {
-            'fields': ('employment_type', 'is_active', 'deadline')
+            'fields': ('employment_type', 'deadline')
+        }),
+        ('Statistics', {
+            'fields': ('views_count', 'applications_count'),
+            'classes': ('collapse',)
         }),
     )
 
 @admin.register(JobApplication)
 class JobApplicationAdmin(ModelAdmin):
-    list_display = ('job', 'applicant', 'applied_date', 'updated_at')
-    list_filter = ('applied_date', 'job__company')
+    list_display = ('job', 'applicant', 'status', 'applied_date', 'updated_at')
+    list_filter = ('status', 'applied_date', 'job__company')
     search_fields = (
         'job__title', 
         'applicant__user__username', 
@@ -110,6 +118,7 @@ class JobApplicationAdmin(ModelAdmin):
     date_hierarchy = 'applied_date'
     readonly_fields = ('applied_date', 'updated_at')
     autocomplete_fields = ['job', 'applicant']
+    list_editable = ['status']
     
     fieldsets = (
         (None, {

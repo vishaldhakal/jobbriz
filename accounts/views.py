@@ -1,14 +1,20 @@
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.decorators import api_view
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
-from .models import JobSeeker, Company, Location, Industry, JobSeekerPreferences, SkillLevel
+from .models import (
+    JobSeeker, Company, Location, Industry, Language,
+    Certification, Education, Skill, CareerHistory,
+    JobSeekerSkill
+)
 from .serializers import (
     UserSerializer, JobSeekerSerializer, CompanySerializer,
-    LocationSerializer, IndustrySerializer, JobSeekerPreferencesSerializer,
-    UserRegistrationSerializer, SkillLevelSerializer
+    LocationSerializer, IndustrySerializer, LanguageSerializer,
+    CertificationSerializer, EducationSerializer, SkillSerializer,
+    CareerHistorySerializer, JobSeekerSkillSerializer,
+    UserRegistrationSerializer
 )
-from rest_framework.decorators import api_view
 
 User = get_user_model()
 
@@ -18,7 +24,6 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -38,11 +43,6 @@ class JobSeekerDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = JobSeekerSerializer
     permission_classes = (permissions.IsAuthenticated,)
     lookup_field = 'slug'
-
-@api_view(['GET'])
-def is_jobseeker(request):
-    is_jobseeker = JobSeeker.objects.filter(user=request.user).exists()
-    return Response({'is_jobseeker': is_jobseeker})
 
 class CompanyListCreateView(generics.ListCreateAPIView):
     queryset = Company.objects.all()
@@ -68,9 +68,43 @@ class IndustryListCreateView(generics.ListCreateAPIView):
     serializer_class = IndustrySerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-class JobSeekerPreferencesDetailView(generics.RetrieveUpdateAPIView):
-    serializer_class = JobSeekerPreferencesSerializer
+class LanguageListCreateView(generics.ListCreateAPIView):
+    queryset = Language.objects.all()
+    serializer_class = LanguageSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    def get_object(self):
-        return JobSeekerPreferences.objects.get(job_seeker__user=self.request.user)
+class CertificationListCreateView(generics.ListCreateAPIView):
+    queryset = Certification.objects.all()
+    serializer_class = CertificationSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+class EducationListCreateView(generics.ListCreateAPIView):
+    queryset = Education.objects.all()
+    serializer_class = EducationSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+class CareerHistoryListCreateView(generics.ListCreateAPIView):
+    serializer_class = CareerHistorySerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        return CareerHistory.objects.filter(job_seeker__user=self.request.user)
+
+    def perform_create(self, serializer):
+        job_seeker = get_object_or_404(JobSeeker, user=self.request.user)
+        serializer.save(job_seeker=job_seeker)
+
+class JobSeekerSkillListCreateView(generics.ListCreateAPIView):
+    queryset = JobSeekerSkill.objects.all()
+    serializer_class = JobSeekerSkillSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+@api_view(['GET'])
+def is_jobseeker(request):
+    is_jobseeker = JobSeeker.objects.filter(user=request.user).exists()
+    return Response({'is_jobseeker': is_jobseeker})
+
+@api_view(['GET'])
+def is_company(request):
+    is_company = Company.objects.filter(user=request.user).exists()
+    return Response({'is_company': is_company})
