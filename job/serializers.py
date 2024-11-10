@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import (MajorGroup, SubMajorGroup, MinorGroup, UnitGroup,
                     JobPost, JobApplication, SavedJob)
 from accounts.serializers import CompanySerializer, LocationSerializer, JobSeekerSerializer
+from accounts.models import Company, Location
 
 class MajorGroupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,6 +30,25 @@ class UnitGroupSerializer(serializers.ModelSerializer):
         model = UnitGroup
         fields = ['id', 'minor_group', 'code', 'title', 'slug', 'description']
 
+class JobPostCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating and updating job posts"""
+    location = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Location.objects.all(),
+        required=False
+    )
+    company = serializers.PrimaryKeyRelatedField(
+        queryset=Company.objects.all()
+    )
+    unit_group = serializers.PrimaryKeyRelatedField(
+        queryset=UnitGroup.objects.all()
+    )
+
+    class Meta:
+        model = JobPost
+        fields = '__all__'
+        read_only_fields = ['slug', 'views_count', 'applications_count']
+
 class JobPostListSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
     location = LocationSerializer(many=True, read_only=True)
@@ -44,6 +64,7 @@ class JobPostListSerializer(serializers.ModelSerializer):
             'employment_type', 'applications_count', 'views_count',
             'show_salary'
         ]
+        read_only_fields = ['slug', 'views_count', 'applications_count']
 
 class JobPostDetailSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
@@ -55,6 +76,19 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobPost
         fields = '__all__'
+        read_only_fields = ['slug', 'views_count', 'applications_count']
+
+class JobApplicationCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating job applications"""
+    class Meta:
+        model = JobApplication
+        fields = ['job', 'cover_letter']
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['applicant'] = request.user.jobseeker
+        return super().create(validated_data)
 
 class JobApplicationSerializer(serializers.ModelSerializer):
     applicant = JobSeekerSerializer(read_only=True)
@@ -69,6 +103,18 @@ class JobApplicationStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobApplication
         fields = ['status']
+
+class SavedJobCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating saved jobs"""
+    class Meta:
+        model = SavedJob
+        fields = ['job']
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['job_seeker'] = request.user.jobseeker
+        return super().create(validated_data)
 
 class SavedJobSerializer(serializers.ModelSerializer):
     job = JobPostListSerializer(read_only=True)

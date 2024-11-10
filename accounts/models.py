@@ -8,6 +8,7 @@ class User(AbstractUser):
     GENDER_CHOICES = [
         ('Male', 'Male'),
         ('Female', 'Female'),
+        ('Other', 'Other'),
     ]
     USER_TYPE_CHOICES = [
         ('Employer', 'Employer'),
@@ -15,9 +16,9 @@ class User(AbstractUser):
     ]
     
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES)
-    gender = models.CharField(max_length=6, choices=GENDER_CHOICES)
-    phone_number = models.CharField(max_length=15)
-    address = models.TextField()
+    gender = models.CharField(max_length=6, choices=GENDER_CHOICES,default='Male')
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,7 +89,7 @@ class Skill(models.Model):
 
 class Location(SlugMixin, models.Model):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
 
 class JobSeeker(models.Model):
@@ -110,24 +111,23 @@ class JobSeeker(models.Model):
         ('Part Time', 'Part Time'),
         ('Contract', 'Contract'),
         ('Internship', 'Internship'),
-        ('All', 'All'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    cv = models.FileField(upload_to='cvs/')
-    skill_levels = models.CharField(max_length=200, choices=LEVEL_CHOICES,default="None")
-    education = models.ManyToManyField(Education)
-    preferred_unit_groups = models.ManyToManyField('job.UnitGroup')
+    cv = models.FileField(upload_to='cvs/', blank=True, null=True)
+    skill_levels = models.CharField(max_length=200, choices=LEVEL_CHOICES, default="None")
+    education = models.ManyToManyField(Education, blank=True)
+    preferred_unit_groups = models.ManyToManyField('job.UnitGroup', blank=True)
     work_experience = models.PositiveIntegerField(default=0)
-    preferred_locations = models.ManyToManyField(Location)
+    preferred_locations = models.ManyToManyField(Location, blank=True)
     preferred_salary_range_from = models.IntegerField(default=0)
     preferred_salary_range_to = models.IntegerField(default=0)
     remote_work_preference = models.BooleanField(default=False)
     bio = models.TextField(blank=True)
-    availability = models.CharField(max_length=50, choices=AVAILABILITY_CHOICES)
-    certifications = models.ManyToManyField(Certification)
-    languages = models.ManyToManyField(Language)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    availability = models.CharField(max_length=50, choices=AVAILABILITY_CHOICES,default='Full Time')
+    certifications = models.ManyToManyField(Certification, blank=True)
+    languages = models.ManyToManyField(Language, blank=True)
+    slug = models.SlugField(max_length=255, unique=True)
     
     def __str__(self):
         return f"Job Seeker - {self.user.username}"
@@ -158,7 +158,7 @@ class CareerHistory(models.Model):
 class Industry(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
-    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    slug = models.SlugField(max_length=255, unique=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -183,12 +183,12 @@ class Company(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='company_profile')
     company_name = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    slug = models.SlugField(max_length=255, unique=True)
     industry = models.ForeignKey(Industry, on_delete=models.CASCADE)
     company_size = models.CharField(max_length=20, choices=COMPANY_SIZE_CHOICES)
     registration_number = models.CharField(max_length=50, unique=True)
     website = models.URLField(blank=True)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     logo = models.FileField(upload_to='company_logos/', null=True, blank=True)
     established_date = models.DateField(null=True, blank=True)
     company_email = models.EmailField()

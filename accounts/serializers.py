@@ -65,10 +65,10 @@ class CareerHistorySerializer(serializers.ModelSerializer):
 
 class JobSeekerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    education = EducationSerializer(many=True)
-    certifications = CertificationSerializer(many=True)
-    languages = LanguageSerializer(many=True)
-    preferred_locations = LocationSerializer(many=True)
+    education = EducationSerializer(many=True, required=False)
+    certifications = CertificationSerializer(many=True, required=False)
+    languages = LanguageSerializer(many=True, required=False)
+    preferred_locations = LocationSerializer(many=True, required=False)
     career_histories = CareerHistorySerializer(many=True, read_only=True, source='careerhistory_set')
 
     class Meta:
@@ -80,20 +80,29 @@ class JobSeekerSerializer(serializers.ModelSerializer):
         education_data = validated_data.pop('education', [])
         certifications_data = validated_data.pop('certifications', [])
         languages_data = validated_data.pop('languages', [])
+        preferred_locations_data = validated_data.pop('preferred_locations', [])
         
         job_seeker = JobSeeker.objects.create(**validated_data)
         
-        for edu_data in education_data:
-            education = Education.objects.create(**edu_data)
-            job_seeker.education.add(education)
+        if education_data:
+            for edu_data in education_data:
+                education = Education.objects.create(**edu_data)
+                job_seeker.education.add(education)
             
-        for cert_data in certifications_data:
-            certification = Certification.objects.create(**cert_data)
-            job_seeker.certifications.add(certification)
+        if certifications_data:
+            for cert_data in certifications_data:
+                certification = Certification.objects.create(**cert_data)
+                job_seeker.certifications.add(certification)
             
-        for lang_data in languages_data:
-            language = Language.objects.create(**lang_data)
-            job_seeker.languages.add(language)
+        if languages_data:
+            for lang_data in languages_data:
+                language = Language.objects.create(**lang_data)
+                job_seeker.languages.add(language)
+
+        if preferred_locations_data:
+            for loc_data in preferred_locations_data:
+                location = Location.objects.create(**loc_data)
+                job_seeker.preferred_locations.add(location)
             
         return job_seeker
 
@@ -106,11 +115,16 @@ class IndustrySerializer(serializers.ModelSerializer):
 class CompanySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     industry = IndustrySerializer()
+    logo = serializers.FileField(required=False)
+    company_registration_certificate = serializers.FileField(required=False)
+    established_date = serializers.DateField(required=False)
+    website = serializers.URLField(required=False)
+    description = serializers.CharField(required=False)
 
     class Meta:
         model = Company
         fields = '__all__'
-        read_only_fields = ('slug',)
+        read_only_fields = ('slug', 'is_verified')
 
     def create(self, validated_data):
         industry_data = validated_data.pop('industry')
