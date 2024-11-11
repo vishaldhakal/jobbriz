@@ -129,11 +129,22 @@ class CareerHistoryListCreateView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
+        # Get career history records associated with the user's JobSeeker profile
         return CareerHistory.objects.filter(job_seeker__user=self.request.user)
-
+    
     def perform_create(self, serializer):
-        job_seeker = get_object_or_404(JobSeeker, user=self.request.user)
-        serializer.save(job_seeker=job_seeker)
+        # Get the JobSeeker instance for the authenticated user
+        try:
+            job_seeker = JobSeeker.objects.get(user=self.request.user)
+        except JobSeeker.DoesNotExist:
+            raise APIException("You must have a JobSeeker profile to add career history records.")
+        
+        # Create the career history record
+        career_history = serializer.save()
+        # Add it to the JobSeeker's career history
+        job_seeker.career_history.add(career_history)
+
+
 
 @api_view(['GET'])
 def is_jobseeker(request):
@@ -148,4 +159,19 @@ def is_company(request):
 class SkillListCreateView(generics.ListCreateAPIView):
     queryset = Skill.objects.all()
     serializer_class = SkillSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+class SkillDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Skill.objects.all()
+    serializer_class = SkillSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+class CertificationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Certification.objects.all()
+    serializer_class = CertificationSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+class CareerHistoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = CareerHistory.objects.all()
+    serializer_class = CareerHistorySerializer
     permission_classes = (permissions.IsAuthenticated,)

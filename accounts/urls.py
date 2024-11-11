@@ -5,7 +5,8 @@ from .views import (
     CompanyListCreateView, CompanyDetailView, LocationListCreateView,
     IndustryListCreateView, LanguageListCreateView, CertificationListCreateView,
     EducationListCreateView, CareerHistoryListCreateView,
-    is_jobseeker, is_company, EducationDetailView, SkillListCreateView
+    is_jobseeker, is_company, EducationDetailView, SkillListCreateView,
+    SkillDetailView, CertificationDetailView, CareerHistoryDetailView
 )
 
 app_name = 'accounts'
@@ -38,8 +39,11 @@ urlpatterns = [
     # Additional Model URLs
     path('languages/', LanguageListCreateView.as_view(), name='language-list'),
     path('skills/', SkillListCreateView.as_view(), name='skill-list'),
+    path('skills/<int:pk>/', SkillDetailView.as_view(), name='skill-detail'),
     path('certifications/', CertificationListCreateView.as_view(), name='certification-list'),
+    path('certifications/<int:pk>/', CertificationDetailView.as_view(), name='certification-detail'),
     path('education/', EducationListCreateView.as_view(), name='education-list'),
     path('education/<int:pk>/', EducationDetailView.as_view(), name='education-detail'),
     path('career-history/', CareerHistoryListCreateView.as_view(), name='career-history-list'),
+    path('career-history/<int:pk>/', CareerHistoryDetailView.as_view(), name='career-history-detail'),
 ] 

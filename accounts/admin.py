@@ -87,7 +87,7 @@ class EducationAdmin(ModelAdmin):
 
 @admin.register(CareerHistory)
 class CareerHistoryAdmin(ModelAdmin):
-    list_display = ('job_seeker', 'company_name', 'job_title', 'start_date', 'end_date')
+    list_display = ('company_name', 'job_title', 'start_date', 'end_date')
     search_fields = ('company_name', 'job_title')
     list_filter = ('start_date', 'end_date')
 

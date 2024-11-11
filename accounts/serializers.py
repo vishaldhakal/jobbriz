@@ -65,18 +65,20 @@ class JobSeekerSerializer(serializers.ModelSerializer):
     languages = LanguageSerializer(many=True, required=False)
     skills = SkillSerializer(many=True, required=False)
     preferred_locations = LocationSerializer(many=True, required=False)
-    career_histories = CareerHistorySerializer(many=True, read_only=True, source='careerhistory_set')
+    career_histories = CareerHistorySerializer(many=True, required=False)
 
     class Meta:
         model = JobSeeker
         fields = '__all__'
         read_only_fields = ('slug',)
+        depth = 2
 
     def create(self, validated_data):
         education_data = validated_data.pop('education', [])
         certifications_data = validated_data.pop('certifications', [])
         languages_data = validated_data.pop('languages', [])
         preferred_locations_data = validated_data.pop('preferred_locations', [])
+        career_histories_data = validated_data.pop('career_histories', [])
         
         job_seeker = JobSeeker.objects.create(**validated_data)
         
@@ -99,6 +101,11 @@ class JobSeekerSerializer(serializers.ModelSerializer):
             for loc_data in preferred_locations_data:
                 location = Location.objects.create(**loc_data)
                 job_seeker.preferred_locations.add(location)
+        
+        if career_histories_data:
+            for career_history_data in career_histories_data:
+                career_history = CareerHistory.objects.create(**career_history_data)
+                job_seeker.career_history.add(career_history)
             
         return job_seeker
 

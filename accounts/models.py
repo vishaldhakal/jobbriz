@@ -90,6 +90,16 @@ class Location(SlugMixin, models.Model):
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
 
+class CareerHistory(models.Model):
+    company_name = models.CharField(max_length=50)
+    job_title = models.CharField(max_length=50)
+    start_date = models.DateField()
+    end_date = models.DateField(blank=True, null=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.job_title
+
 class JobSeeker(models.Model):
     LEVEL_CHOICES = [
         ('RPL', 'RPL'),
@@ -115,6 +125,7 @@ class JobSeeker(models.Model):
     cv = models.FileField(upload_to='cvs/', blank=True, null=True)
     skill_levels = models.CharField(max_length=200, choices=LEVEL_CHOICES, default="None")
     education = models.ManyToManyField(Education, blank=True)
+    career_history = models.ManyToManyField(CareerHistory, blank=True,related_name='job_seeker_career_history')
     preferred_unit_groups = models.ManyToManyField('job.UnitGroup', blank=True)
     work_experience = models.PositiveIntegerField(default=0)
     skills = models.ManyToManyField(Skill, blank=True,related_name='job_seeker_skills')
@@ -143,16 +154,6 @@ class JobSeeker(models.Model):
             self.slug = slug
         super().save(*args, **kwargs)
 
-class CareerHistory(models.Model):
-    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
-    company_name = models.CharField(max_length=50)
-    job_title = models.CharField(max_length=50)
-    start_date = models.DateField()
-    end_date = models.DateField(blank=True, null=True)
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.job_title
 
 class Industry(models.Model):
     name = models.CharField(max_length=255)
