@@ -3,16 +3,16 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from rest_framework.exceptions import ValidationError, APIException
 from .models import (
     JobSeeker, Company, Location, Industry, Language,
-    Certification, Education, Skill, CareerHistory,
-    JobSeekerSkill
+    Certification, Education, Skill, CareerHistory
 )
 from .serializers import (
     UserSerializer, JobSeekerSerializer, CompanySerializer,
     LocationSerializer, IndustrySerializer, LanguageSerializer,
     CertificationSerializer, EducationSerializer, SkillSerializer,
-    CareerHistorySerializer, JobSeekerSkillSerializer,
+    CareerHistorySerializer,
     UserRegistrationSerializer
 )
 
@@ -74,11 +74,52 @@ class LanguageListCreateView(generics.ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
 class CertificationListCreateView(generics.ListCreateAPIView):
-    queryset = Certification.objects.all()
     serializer_class = CertificationSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
+    def get_queryset(self):
+        # Get certification records associated with the user's JobSeeker profile
+        return Certification.objects.filter(jobseeker__user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Get the JobSeeker instance for the authenticated user
+        try:
+            job_seeker = JobSeeker.objects.get(user=self.request.user)
+        except JobSeeker.DoesNotExist:
+            raise ValidationError("You must have a JobSeeker profile to add certification records.")
+        
+        # Create the certification record
+        certification = serializer.save()
+        # Add it to the JobSeeker's certifications
+        job_seeker.certifications.add(certification)
+
 class EducationListCreateView(generics.ListCreateAPIView):
+    serializer_class = EducationSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        # Get education records associated with the user's JobSeeker profile
+        return Education.objects.filter(jobseeker__user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Get the JobSeeker instance for the authenticated user
+        try:
+            job_seeker = JobSeeker.objects.get(user=self.request.user)
+        except JobSeeker.DoesNotExist:
+            raise APIException("You must have a JobSeeker profile to add education records.")
+        
+        if Education.objects.filter(year_of_completion=serializer.validated_data['year_of_completion']).exists():
+            raise APIException("You have already added an education record for this year.")
+        
+        if Education.objects.filter(course_or_qualification=serializer.validated_data['course_or_qualification']).exists():
+            raise APIException("You have already added an education record for this course or qualification.")
+        
+        # Create the education record
+        education = serializer.save()
+        # Add it to the JobSeeker's education
+        job_seeker.education.add(education)
+
+class EducationDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Education.objects.all()
     serializer_class = EducationSerializer
     permission_classes = (permissions.IsAuthenticated,)
@@ -94,11 +135,6 @@ class CareerHistoryListCreateView(generics.ListCreateAPIView):
         job_seeker = get_object_or_404(JobSeeker, user=self.request.user)
         serializer.save(job_seeker=job_seeker)
 
-class JobSeekerSkillListCreateView(generics.ListCreateAPIView):
-    queryset = JobSeekerSkill.objects.all()
-    serializer_class = JobSeekerSkillSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
 @api_view(['GET'])
 def is_jobseeker(request):
     is_jobseeker = JobSeeker.objects.filter(user=request.user).exists()
@@ -108,3 +144,8 @@ def is_jobseeker(request):
 def is_company(request):
     is_company = Company.objects.filter(user=request.user).exists()
     return Response({'is_company': is_company})
+
+class SkillListCreateView(generics.ListCreateAPIView):
+    queryset = Skill.objects.all()
+    serializer_class = SkillSerializer
+    permission_classes = (permissions.IsAuthenticated,)

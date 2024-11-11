@@ -2,8 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
     JobSeeker, Company, Location, Industry, Language,
-    Certification, Education, Skill, CareerHistory,
-    JobSeekerSkill
+    Certification, Education, Skill, CareerHistory
 )
 
 User = get_user_model()
@@ -27,10 +26,6 @@ class UserSerializer(serializers.ModelSerializer):
                  'user_type', 'gender', 'phone_number', 'address')
         read_only_fields = ('id',)
 
-class JobSeekerSkillSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = JobSeekerSkill
-        fields = '__all__'
 
 class LanguageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -68,6 +63,7 @@ class JobSeekerSerializer(serializers.ModelSerializer):
     education = EducationSerializer(many=True, required=False)
     certifications = CertificationSerializer(many=True, required=False)
     languages = LanguageSerializer(many=True, required=False)
+    skills = SkillSerializer(many=True, required=False)
     preferred_locations = LocationSerializer(many=True, required=False)
     career_histories = CareerHistorySerializer(many=True, read_only=True, source='careerhistory_set')
 

@@ -4,7 +4,7 @@ from unfold.admin import ModelAdmin
 from .models import (
     User, JobSeeker, Location, Industry, Company,
     Language, Certification, Education, CareerHistory,
-    JobSeekerSkill, Skill
+    Skill
 )
 
 @admin.register(User)
@@ -90,11 +90,6 @@ class CareerHistoryAdmin(ModelAdmin):
     list_display = ('job_seeker', 'company_name', 'job_title', 'start_date', 'end_date')
     search_fields = ('company_name', 'job_title')
     list_filter = ('start_date', 'end_date')
-
-@admin.register(JobSeekerSkill)
-class JobSeekerSkillAdmin(ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
 
 @admin.register(Skill)
 class SkillAdmin(ModelAdmin):

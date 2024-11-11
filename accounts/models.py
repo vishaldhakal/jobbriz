@@ -38,7 +38,7 @@ class User(AbstractUser):
         help_text=_('Specific permissions for this user.')
     )
 
-class JobSeekerSkill(models.Model):
+class Skill(models.Model):
     name = models.CharField(max_length=50)
 
     def __str__(self):
@@ -81,11 +81,9 @@ class Education(models.Model):
     def __str__(self):
         return self.course_or_qualification
     
-class Skill(models.Model):
-    name = models.CharField(max_length=50)
-
-    def __str__(self):
-        return self.name
+    class Meta:
+        ordering = ['-year_of_completion']
+    
 
 class Location(SlugMixin, models.Model):
     name = models.CharField(max_length=255)
@@ -119,6 +117,7 @@ class JobSeeker(models.Model):
     education = models.ManyToManyField(Education, blank=True)
     preferred_unit_groups = models.ManyToManyField('job.UnitGroup', blank=True)
     work_experience = models.PositiveIntegerField(default=0)
+    skills = models.ManyToManyField(Skill, blank=True,related_name='job_seeker_skills')
     preferred_locations = models.ManyToManyField(Location, blank=True)
     preferred_salary_range_from = models.IntegerField(default=0)
     preferred_salary_range_to = models.IntegerField(default=0)
