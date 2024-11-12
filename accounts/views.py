@@ -186,3 +186,9 @@ class CareerHistoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CareerHistory.objects.all()
     serializer_class = CareerHistorySerializer
     permission_classes = (permissions.IsAuthenticated,)
+
+
+class CertificationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Certification.objects.all()
+    serializer_class = CertificationSerializer
+    permission_classes = (permissions.IsAuthenticated,)
