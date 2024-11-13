@@ -6,18 +6,18 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import APIException, ValidationError
 from .models import (
     MajorGroup, SubMajorGroup, MinorGroup, UnitGroup,
-    JobPost, JobApplication, SavedJob
+    JobPost, JobApplication, SavedJob, HireRequest
 )
 from .serializers import (
     MajorGroupSerializer, SubMajorGroupSerializer,
     MinorGroupSerializer, UnitGroupSerializer,
     JobPostListSerializer, JobPostDetailSerializer,
     JobApplicationSerializer, JobApplicationStatusUpdateSerializer,
-    SavedJobSerializer, JobListAllSerializer
+    SavedJobSerializer, JobListAllSerializer, HireRequestSerializer,
+    HireRequestStatusUpdateSerializer
 )
-from accounts.models import Company
+from accounts.models import Company, JobSeeker
 
-# Create your views here.
 
 class MajorGroupListCreateView(generics.ListCreateAPIView):
     queryset = MajorGroup.objects.all()
@@ -169,7 +169,7 @@ class JobApplicationCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        if not hasattr(self.request.user, 'jobseeker'):
+        if self.request.user.user_type != 'Job Seeker':
             raise ValidationError("Only job seekers can apply for jobs")
         
         job_slug = self.kwargs.get('job_slug')
@@ -177,9 +177,9 @@ class JobApplicationCreateView(generics.CreateAPIView):
         
         if JobApplication.objects.filter(job=job, applicant=self.request.user.jobseeker).exists():
             raise ValidationError("You have already applied for this job")
-            
+        job_seeker = JobSeeker.objects.get(user=self.request.user)
         serializer.save(
-            applicant=self.request.user.jobseeker,
+            applicant=job_seeker,
             job=job
         )
 
@@ -189,10 +189,16 @@ class JobApplicationListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if hasattr(user, 'jobseeker'):
+        if user.user_type == 'Job Seeker':
             return JobApplication.objects.filter(applicant=user.jobseeker)
-        elif hasattr(user, 'company'):
-            return JobApplication.objects.filter(job__company=user.company)
+        elif user.user_type == 'Employer':
+            company = Company.objects.get(user=user)
+            job_applications = JobApplication.objects.filter(job__company=company)
+            job_slug = self.request.query_params.get('job_slug')
+            if job_slug:
+                job_post = JobPost.objects.get(slug=job_slug)
+                job_applications = job_applications.filter(job=job_post)
+            return job_applications
         return JobApplication.objects.none()
 
 class JobApplicationDetailView(generics.RetrieveUpdateAPIView):
@@ -201,10 +207,12 @@ class JobApplicationDetailView(generics.RetrieveUpdateAPIView):
     
     def get_queryset(self):
         user = self.request.user
-        if hasattr(user, 'jobseeker'):
-            return JobApplication.objects.filter(applicant=user.jobseeker)
-        elif hasattr(user, 'company'):
-            return JobApplication.objects.filter(job__company=user.company)
+        if user.user_type == 'Job Seeker':
+            job_seeker = JobSeeker.objects.get(user=user)
+            return JobApplication.objects.filter(applicant=job_seeker)
+        elif user.user_type == 'Employer':
+            company = Company.objects.get(user=user)
+            return JobApplication.objects.filter(job__company=company)
         return JobApplication.objects.none()
 
 class UpdateApplicationStatusView(generics.UpdateAPIView):
@@ -212,8 +220,10 @@ class UpdateApplicationStatusView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if hasattr(self.request.user, 'company'):
-            return JobApplication.objects.filter(job__company=self.request.user.company)
+        user = self.request.user
+        if user.user_type == 'Employer':
+            company = Company.objects.get(user=user)
+            return JobApplication.objects.filter(job__company=company)
         return JobApplication.objects.none()
 
 class SavedJobToggleView(views.APIView):
@@ -243,3 +253,65 @@ class SavedJobListView(generics.ListAPIView):
         if hasattr(self.request.user, 'jobseeker'):
             return SavedJob.objects.filter(job_seeker=self.request.user.jobseeker)
         return SavedJob.objects.none()
+
+class HireRequestCreateView(generics.CreateAPIView):
+    serializer_class = HireRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.user_type != 'Employer':
+            raise ValidationError("Only employers can create hire requests")
+            
+        job_slug = self.kwargs.get('job_slug')
+        jobseeker_slug = self.kwargs.get('jobseeker_slug')
+        
+        job = get_object_or_404(JobPost, slug=job_slug)
+        job_seeker = get_object_or_404(JobSeeker, slug=jobseeker_slug)
+        
+        if HireRequest.objects.filter(job=job, job_seeker=job_seeker).exists():
+            raise ValidationError("A hire request already exists for this job seeker")
+            
+        serializer.save(
+            job=job,
+            job_seeker=job_seeker
+        )
+
+class HireRequestListView(generics.ListAPIView):
+    serializer_class = HireRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_type == 'Employer':
+            company = Company.objects.get(user=user)
+            return HireRequest.objects.filter(job__company=company)
+        elif user.user_type == 'Job Seeker':
+            job_seeker = JobSeeker.objects.get(user=user)
+            return HireRequest.objects.filter(job_seeker=job_seeker)
+        return HireRequest.objects.none()
+
+class HireRequestDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = HireRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_type == 'Employer':
+            company = Company.objects.get(user=user)
+            return HireRequest.objects.filter(job__company=company)
+        elif user.user_type == 'Job Seeker':
+            job_seeker = JobSeeker.objects.get(user=user)
+            return HireRequest.objects.filter(job_seeker=job_seeker)
+        return HireRequest.objects.none()
+
+class HireRequestStatusUpdateView(generics.UpdateAPIView):
+    serializer_class = HireRequestStatusUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_type == 'Job Seeker':
+            job_seeker = JobSeeker.objects.get(user=user)
+            return HireRequest.objects.filter(job_seeker=job_seeker)
+        return HireRequest.objects.none()

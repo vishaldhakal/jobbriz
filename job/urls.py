@@ -29,4 +29,10 @@ urlpatterns = [
     # Saved Jobs
     path('jobs/<slug:job_slug>/save/', views.SavedJobToggleView.as_view(), name='save-job-toggle'),
     path('saved-jobs/', views.SavedJobListView.as_view(), name='saved-job-list'),
+    
+    # Hire Requests
+    path('jobs/<slug:job_slug>/hire/<slug:jobseeker_slug>/', views.HireRequestCreateView.as_view(), name='hire-request-create'),
+    path('hire-requests/', views.HireRequestListView.as_view(), name='hire-request-list'),
+    path('hire-requests/<int:pk>/', views.HireRequestDetailView.as_view(), name='hire-request-detail'),
+    path('hire-requests/<int:pk>/update-status/', views.HireRequestStatusUpdateView.as_view(), name='hire-request-status-update'),
 ] 

@@ -7,7 +7,8 @@ from .models import (
     UnitGroup, 
     JobPost, 
     JobApplication, 
-    SavedJob
+    SavedJob,
+    HireRequest
 )
 
 @admin.register(MajorGroup)
@@ -145,5 +146,24 @@ class SavedJobAdmin(ModelAdmin):
     fieldsets = (
         (None, {
             'fields': ('job', 'job_seeker', 'saved_date')
+        }),
+    )
+
+@admin.register(HireRequest)
+class HireRequestAdmin(ModelAdmin):
+    list_display = ('job', 'job_seeker', 'status', 'requested_date')
+    list_filter = ('status', 'requested_date', 'job__company')
+    search_fields = (
+        'job__title', 
+        'job_seeker__user__username', 
+        'job_seeker__user__email'
+    )
+    date_hierarchy = 'requested_date'
+    readonly_fields = ('requested_date',)
+    autocomplete_fields = ['job', 'job_seeker']
+    
+    fieldsets = (
+        (None, {
+            'fields': ('job', 'job_seeker', 'status', 'requested_date','message')
         }),
     )

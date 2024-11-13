@@ -4,6 +4,7 @@ from .models import (
     JobSeeker, Company, Location, Industry, Language,
     Certification, Education, Skill, CareerHistory
 )
+from job.models import UnitGroup, HireRequest
 
 User = get_user_model()
 
@@ -35,15 +36,6 @@ class UserSerializer(serializers.ModelSerializer):
             jobseeker = obj.jobseeker
             return {
                 'slug': jobseeker.slug,
-                'bio': jobseeker.bio,
-                'availability': jobseeker.availability,
-                'work_experience': jobseeker.work_experience,
-                'skill_levels': jobseeker.skill_levels,
-                'remote_work_preference': jobseeker.remote_work_preference,
-                'preferred_salary_range': {
-                    'from': jobseeker.preferred_salary_range_from,
-                    'to': jobseeker.preferred_salary_range_to
-                }
             }
         except JobSeeker.DoesNotExist:
             return None
@@ -53,12 +45,6 @@ class UserSerializer(serializers.ModelSerializer):
             company = obj.company_profile
             return {
                 'slug': company.slug,
-                'company_name': company.company_name,
-                'company_size': company.company_size,
-                'website': company.website,
-                'description': company.description,
-                'company_email': company.company_email,
-                'is_verified': company.is_verified
             }
         except Company.DoesNotExist:
             return None
@@ -99,9 +85,22 @@ class JobSeekerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     education = EducationSerializer(many=True, required=False)
     certifications = CertificationSerializer(many=True, required=False)
-    languages = LanguageSerializer(many=True, required=False)
+    languages = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Language.objects.all(),
+        required=False
+    )
     skills = SkillSerializer(many=True, required=False)
-    preferred_locations = LocationSerializer(many=True, required=False)
+    preferred_locations = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Location.objects.all(),
+        required=False
+    )
+    preferred_unit_groups = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=UnitGroup.objects.all(),
+        required=False
+    )
     career_histories = CareerHistorySerializer(many=True, required=False)
 
     class Meta:
@@ -113,8 +112,6 @@ class JobSeekerSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         education_data = validated_data.pop('education', [])
         certifications_data = validated_data.pop('certifications', [])
-        languages_data = validated_data.pop('languages', [])
-        preferred_locations_data = validated_data.pop('preferred_locations', [])
         career_histories_data = validated_data.pop('career_histories', [])
         
         job_seeker = JobSeeker.objects.create(**validated_data)
@@ -128,16 +125,6 @@ class JobSeekerSerializer(serializers.ModelSerializer):
             for cert_data in certifications_data:
                 certification = Certification.objects.create(**cert_data)
                 job_seeker.certifications.add(certification)
-            
-        if languages_data:
-            for lang_data in languages_data:
-                language = Language.objects.create(**lang_data)
-                job_seeker.languages.add(language)
-
-        if preferred_locations_data:
-            for loc_data in preferred_locations_data:
-                location = Location.objects.create(**loc_data)
-                job_seeker.preferred_locations.add(location)
         
         if career_histories_data:
             for career_history_data in career_histories_data:
@@ -145,6 +132,30 @@ class JobSeekerSerializer(serializers.ModelSerializer):
                 job_seeker.career_history.add(career_history)
             
         return job_seeker
+
+
+class JobSeekerSerializer2(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    education = EducationSerializer(many=True, required=False)
+    certifications = CertificationSerializer(many=True, required=False)
+    languages = LanguageSerializer(many=True, required=False)
+    skills = SkillSerializer(many=True, required=False)
+    preferred_locations = LocationSerializer(many=True, required=False)
+    career_histories = CareerHistorySerializer(many=True, required=False)
+    already_hired = serializers.SerializerMethodField()
+
+    def get_already_hired(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            company = Company.objects.get(user=request.user)
+            return HireRequest.objects.filter(job__company=company, job_seeker=obj).exists()
+        return False
+
+    class Meta:
+        model = JobSeeker
+        fields = '__all__'
+        read_only_fields = ('slug',)
+        depth = 2
 
 class IndustrySerializer(serializers.ModelSerializer):
     class Meta:
@@ -154,7 +165,7 @@ class IndustrySerializer(serializers.ModelSerializer):
 
 class CompanySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    industry = IndustrySerializer()
+    industry = IndustrySerializer(read_only=True)
     logo = serializers.FileField(required=False)
     company_registration_certificate = serializers.FileField(required=False)
     established_date = serializers.DateField(required=False)

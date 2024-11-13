@@ -125,18 +125,18 @@ class JobPost(SlugMixin, models.Model):
 
 class JobApplication(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('reviewed', 'Reviewed'),
-        ('shortlisted', 'Shortlisted'),
-        ('rejected', 'Rejected'),
-        ('hired', 'Hired'),
+        ('Pending', 'Pending'),
+        ('Reviewed', 'Reviewed'),
+        ('Shortlisted', 'Shortlisted'),
+        ('Rejected', 'Rejected'),
+        ('Hired', 'Hired'),
     ]
     
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name='applications')
     applicant = models.ForeignKey('accounts.JobSeeker', on_delete=models.CASCADE)
     applied_date = models.DateTimeField(auto_now_add=True)
     cover_letter = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
@@ -150,6 +150,22 @@ class JobApplication(models.Model):
             self.job.applications_count = models.F('applications_count') + 1
             self.job.save()
         super().save(*args, **kwargs)
+
+class HireRequest(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Accepted', 'Accepted'),
+        ('Rejected', 'Rejected'),
+    ]
+    
+    job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name='hire_requests')
+    job_seeker = models.ForeignKey('accounts.JobSeeker', on_delete=models.CASCADE, related_name='hire_requests')
+    requested_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    message = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('job', 'job_seeker')
 
 class SavedJob(models.Model):
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name='saved_by')

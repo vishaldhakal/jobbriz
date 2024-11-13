@@ -13,7 +13,7 @@ from .serializers import (
     LocationSerializer, IndustrySerializer, LanguageSerializer,
     CertificationSerializer, EducationSerializer, SkillSerializer,
     CareerHistorySerializer,
-    UserRegistrationSerializer
+    UserRegistrationSerializer, JobSeekerSerializer2
 )
 
 User = get_user_model()
@@ -32,7 +32,7 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class JobSeekerListCreateView(generics.ListCreateAPIView):
     queryset = JobSeeker.objects.all()
-    serializer_class = JobSeekerSerializer
+    serializer_class = JobSeekerSerializer2
     permission_classes = (permissions.IsAuthenticated,)
 
     def perform_create(self, serializer):
@@ -40,9 +40,15 @@ class JobSeekerListCreateView(generics.ListCreateAPIView):
 
 class JobSeekerDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = JobSeeker.objects.all()
-    serializer_class = JobSeekerSerializer
+    serializer_class = JobSeekerSerializer2
     permission_classes = (permissions.IsAuthenticated,)
     lookup_field = 'slug'
+
+    def get_serializer_class(self):
+        if self.request.method == 'PATCH' or self.request.method == 'PUT' or self.request.method == 'POST':
+            return JobSeekerSerializer
+        return JobSeekerSerializer2
+    
 
 class CompanyListCreateView(generics.ListCreateAPIView):
     queryset = Company.objects.all()
@@ -158,25 +164,22 @@ class SkillListCreateView(generics.ListCreateAPIView):
     serializer_class = SkillSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-class SkillDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Skill.objects.all()
-    serializer_class = SkillSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def get_queryset(self):
-        return Skill.objects.filter(job_seeker__user=self.request.user)
-    
     def perform_create(self, serializer):
         # Get the JobSeeker instance for the authenticated user
         try:
             job_seeker = JobSeeker.objects.get(user=self.request.user)
         except JobSeeker.DoesNotExist:
-            raise APIException("You must have a JobSeeker profile to add skill records.")
+            raise APIException("You must have a JobSeeker profile to add skills records.")
         
         # Create the skill record
         skill = serializer.save()
         # Add it to the JobSeeker's skills
         job_seeker.skills.add(skill)
+
+class SkillDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Skill.objects.all()
+    serializer_class = SkillSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 
 
 class CareerHistoryDetailView(generics.RetrieveUpdateDestroyAPIView):
