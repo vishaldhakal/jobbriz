@@ -61,17 +61,14 @@ class CompanyDetailView(generics.RetrieveUpdateDestroyAPIView):
 class LocationListCreateView(generics.ListCreateAPIView):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
-    permission_classes = (permissions.IsAuthenticated,)
 
 class IndustryListCreateView(generics.ListCreateAPIView):
     queryset = Industry.objects.all()
     serializer_class = IndustrySerializer
-    permission_classes = (permissions.IsAuthenticated,)
 
 class LanguageListCreateView(generics.ListCreateAPIView):
     queryset = Language.objects.all()
     serializer_class = LanguageSerializer
-    permission_classes = (permissions.IsAuthenticated,)
 
 class CertificationListCreateView(generics.ListCreateAPIView):
     serializer_class = CertificationSerializer

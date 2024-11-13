@@ -3,15 +3,14 @@ from django.utils.text import slugify
 
 class SlugMixin:
     def generate_unique_slug(self):
-        if not self.slug:
-            base_slug = slugify(self.title)
-            slug = base_slug
-            counter = 1
-            model = self.__class__
-            while model.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
-            self.slug = slug
+        base_slug = slugify(self.title)
+        slug = base_slug
+        counter = 1
+        model = self.__class__
+        while model.objects.filter(slug=slug).exclude(id=self.id).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        self.slug = slug
 
     def save(self, *args, **kwargs):
         self.generate_unique_slug()
@@ -114,8 +113,7 @@ class JobPost(SlugMixin, models.Model):
     salary_range_min = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     salary_range_max = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     location = models.ManyToManyField('accounts.Location', related_name='job_posts')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Published')
     posted_date = models.DateTimeField(auto_now_add=True)
     deadline = models.DateTimeField()
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES)

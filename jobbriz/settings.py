@@ -141,3 +141,5 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+CSRF_TRUSTED_ORIGINS = ['https://4034-103-156-26-87.ngrok-free.app']

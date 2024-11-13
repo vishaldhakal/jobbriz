@@ -59,6 +59,9 @@ class Certification(models.Model):
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        ordering = ['issue_date']
 
 class Education(models.Model):
     COURSE_OR_QUALIFICATION_CHOICES = [
@@ -82,13 +85,28 @@ class Education(models.Model):
         return self.course_or_qualification
     
     class Meta:
-        ordering = ['-year_of_completion']
+        ordering = ['year_of_completion']
     
 
-class Location(SlugMixin, models.Model):
+class Location(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            # Check if slug exists and generate a unique one
+            while JobSeeker.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
 class CareerHistory(models.Model):
     company_name = models.CharField(max_length=50)
@@ -99,6 +117,9 @@ class CareerHistory(models.Model):
 
     def __str__(self):
         return self.job_title
+    
+    class Meta:
+        ordering = ['start_date']
 
 class JobSeeker(models.Model):
     LEVEL_CHOICES = [
@@ -201,8 +222,8 @@ class Company(models.Model):
         ordering = ['company_name']
     
     def save(self, *args, **kwargs):
-        if not self.slug:
-            base_slug = slugify(self.user.username)
+        base_slug = slugify(self.company_name)
+        if not self.slug or base_slug != slugify(Company.objects.get(pk=self.pk).company_name if self.pk else ''):
             slug = base_slug
             counter = 1
             # Check if slug exists and generate a unique one

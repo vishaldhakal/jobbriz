@@ -49,11 +49,41 @@ class JobPostCreateUpdateSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['slug', 'views_count', 'applications_count']
 
+class CompanySmallSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ['id', 'company_name', 'slug','logo','industry']
+
+class UnitGroupSmallSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UnitGroup
+        fields = ['id', 'code', 'title', 'slug','minor_group']
+        depth = 4
+
+class LocationSmallSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ['id', 'name', 'slug']
+
+class JobListAllSerializer(serializers.ModelSerializer):
+    location = LocationSmallSerializer(many=True, read_only=True)
+    company = CompanySmallSerializer(read_only=True)
+    unit_group = UnitGroupSmallSerializer(read_only=True)
+    class Meta:
+        model = JobPost
+        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type', 'applications_count', 'views_count','company','salary_range_min','salary_range_max','show_salary','unit_group']
+        depth = 2
+
 class JobPostListSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
-    location = LocationSerializer(many=True, read_only=True)
+    location = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Location.objects.all(),
+        required=False
+    )
     applications_count = serializers.IntegerField(read_only=True)
     views_count = serializers.IntegerField(read_only=True)
+    unit_group = UnitGroupSerializer(read_only=True)
     
     class Meta:
         model = JobPost
@@ -62,7 +92,8 @@ class JobPostListSerializer(serializers.ModelSerializer):
             'required_education', 'salary_range_min', 'salary_range_max',
             'location', 'status', 'posted_date', 'deadline',
             'employment_type', 'applications_count', 'views_count',
-            'show_salary'
+            'show_salary','description','responsibilities','requirements',
+            'unit_group'
         ]
         read_only_fields = ['slug', 'views_count', 'applications_count']
 

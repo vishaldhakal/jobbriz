@@ -20,11 +20,48 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 class UserSerializer(serializers.ModelSerializer):
+    jobseeker_data = serializers.SerializerMethodField()
+    company_data = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name',
-                 'user_type', 'gender', 'phone_number', 'address')
+                 'user_type', 'gender', 'phone_number', 'address',
+                 'jobseeker_data', 'company_data')
         read_only_fields = ('id',)
+
+    def get_jobseeker_data(self, obj):
+        try:
+            jobseeker = obj.jobseeker
+            return {
+                'slug': jobseeker.slug,
+                'bio': jobseeker.bio,
+                'availability': jobseeker.availability,
+                'work_experience': jobseeker.work_experience,
+                'skill_levels': jobseeker.skill_levels,
+                'remote_work_preference': jobseeker.remote_work_preference,
+                'preferred_salary_range': {
+                    'from': jobseeker.preferred_salary_range_from,
+                    'to': jobseeker.preferred_salary_range_to
+                }
+            }
+        except JobSeeker.DoesNotExist:
+            return None
+
+    def get_company_data(self, obj):
+        try:
+            company = obj.company_profile
+            return {
+                'slug': company.slug,
+                'company_name': company.company_name,
+                'company_size': company.company_size,
+                'website': company.website,
+                'description': company.description,
+                'company_email': company.company_email,
+                'is_verified': company.is_verified
+            }
+        except Company.DoesNotExist:
+            return None
 
 
 class LanguageSerializer(serializers.ModelSerializer):
