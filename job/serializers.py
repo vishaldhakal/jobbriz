@@ -108,12 +108,13 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
     
     def get_has_already_applied(self, obj):
         request = self.context.get('request')
-        user = request.user
-        job_seeker = JobSeeker.objects.get(user=user)
-        if request and hasattr(request, 'user'):
-            return JobApplication.objects.filter(job=obj, applicant=job_seeker).exists()
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                job_seeker = JobSeeker.objects.get(user=request.user)
+                return JobApplication.objects.filter(job=obj, applicant=job_seeker).exists()
+            except JobSeeker.DoesNotExist:
+                return False
         return False
-    
     
     class Meta:
         model = JobPost

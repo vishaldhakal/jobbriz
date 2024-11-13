@@ -17,6 +17,8 @@ from .serializers import (
     HireRequestStatusUpdateSerializer
 )
 from accounts.models import Company, JobSeeker
+from django.db import models
+from django.utils import timezone
 
 
 class MajorGroupListCreateView(generics.ListCreateAPIView):
@@ -81,33 +83,58 @@ class JobPostListCreateView(generics.ListCreateAPIView):
         return paginator.get_paginated_response(serializer.data)
 
     def get_queryset(self):
-        queryset = JobPost.objects.all()
+        queryset = JobPost.objects.filter(status='Published')
         
-        # Filter by location
+        # Keyword search
+        keywords = self.request.query_params.get('keywords')
+        if keywords:
+            queryset = queryset.filter(
+                models.Q(title__icontains=keywords) |
+                models.Q(description__icontains=keywords) |
+                models.Q(requirements__icontains=keywords)
+            )
+        
+        # Classification (Unit Group) filter
+        classification = self.request.query_params.get('classification')
+        if classification:
+            queryset = queryset.filter(unit_group__slug=classification)
+            
+        # Location filter
         location = self.request.query_params.get('location')
         if location:
-            queryset = queryset.filter(location__slug=location)
+            queryset = queryset.filter(location__name__icontains=location)
             
-        # Filter by employment type
-        employment_type = self.request.query_params.get('employment_type')
-        if employment_type:
-            queryset = queryset.filter(employment_type=employment_type)
+        # Employment type filter
+        work_type = self.request.query_params.get('work_type')
+        if work_type and work_type != 'Any work type':
+            queryset = queryset.filter(employment_type=work_type)
             
-        # Filter by education
-        education = self.request.query_params.get('education')
-        if education:
-            queryset = queryset.filter(required_education=education)
-
-        status = self.request.query_params.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
+        # Salary range filter
+        salary_min = self.request.query_params.get('salary_min')
+        salary_max = self.request.query_params.get('salary_max')
+        if salary_min:
+            queryset = queryset.filter(salary_range_min__gte=salary_min)
+        if salary_max:
+            queryset = queryset.filter(salary_range_max__lte=salary_max)
             
-        # Filter by skill level
-        skill_level = self.request.query_params.get('skill_level')
-        if skill_level:
-            queryset = queryset.filter(required_skill_level=skill_level)
+        # Posted date filter
+        listing_time = self.request.query_params.get('listing_time')
+        if listing_time:
+            if listing_time == 'Last 24 hours':
+                date_threshold = timezone.now() - timezone.timedelta(days=1)
+            elif listing_time == 'Last 3 days':
+                date_threshold = timezone.now() - timezone.timedelta(days=3)
+            elif listing_time == 'Last 7 days':
+                date_threshold = timezone.now() - timezone.timedelta(days=7)
+            elif listing_time == 'Last 14 days':
+                date_threshold = timezone.now() - timezone.timedelta(days=14)
+            elif listing_time == 'Last 30 days':
+                date_threshold = timezone.now() - timezone.timedelta(days=30)
             
-        return queryset
+            if date_threshold:
+                queryset = queryset.filter(posted_date__gte=date_threshold)
+        
+        return queryset.order_by('-posted_date')
 
     def perform_create(self, serializer):
         if self.request.user.user_type != 'Employer':
