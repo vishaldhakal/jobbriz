@@ -158,11 +158,12 @@ class JobPostViewCountView(views.APIView):
 
 class CompanyJobListView(generics.ListAPIView):
     serializer_class = JobListAllSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        company = Company.objects.get(user=self.request.user)
-        queryset = JobPost.objects.filter(company=company)
+        company_slug = self.kwargs.get('company_slug')
+        company = get_object_or_404(Company, slug=company_slug)
+        queryset = JobPost.objects.filter(company=company, status='Published')
         
         # Filter by location
         location = self.request.query_params.get('location')
@@ -188,7 +189,7 @@ class CompanyJobListView(generics.ListAPIView):
         if skill_level:
             queryset = queryset.filter(required_skill_level=skill_level)
             
-        return queryset
+        return queryset.order_by('-posted_date')
 
 
 class JobApplicationCreateView(generics.CreateAPIView):

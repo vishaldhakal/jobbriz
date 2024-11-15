@@ -63,8 +63,12 @@ class CompanyListCreateView(generics.ListCreateAPIView):
 class CompanyDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
-    permission_classes = (permissions.IsAuthenticated,)
     lookup_field = 'slug'
+    
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
 class LocationListCreateView(generics.ListCreateAPIView):
     queryset = Location.objects.all()
