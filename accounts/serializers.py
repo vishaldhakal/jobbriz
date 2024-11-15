@@ -146,9 +146,12 @@ class JobSeekerSerializer2(serializers.ModelSerializer):
 
     def get_already_hired(self, obj):
         request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            company = Company.objects.get(user=request.user)
-            return HireRequest.objects.filter(job__company=company, job_seeker=obj).exists()
+        if request and hasattr(request, 'user') and request.user.user_type == 'Employer':
+            try:
+                company = Company.objects.get(user=request.user)
+                return HireRequest.objects.filter(job__company=company, job_seeker=obj).exists()
+            except Company.DoesNotExist:
+                return False
         return False
 
     class Meta:

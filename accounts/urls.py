@@ -6,7 +6,8 @@ from .views import (
     IndustryListCreateView, LanguageListCreateView, CertificationListCreateView,
     EducationListCreateView, CareerHistoryListCreateView,
     is_jobseeker, is_company, EducationDetailView, SkillListCreateView,
-    SkillDetailView, CertificationDetailView, CareerHistoryDetailView
+    SkillDetailView, CertificationDetailView, CareerHistoryDetailView,
+    FeaturedCompanyListView, CompanyListView
 )
 
 app_name = 'accounts'
@@ -29,6 +30,7 @@ urlpatterns = [
     path('is-company/', is_company, name='is-company'),
     path('companies/', CompanyListCreateView.as_view(), name='company-list'),
     path('companies/<slug:slug>/', CompanyDetailView.as_view(), name='company-detail'),
+    path('companies-list/', CompanyListView.as_view(), name='companies-list'),
     
     # Location URLs
     path('locations/', LocationListCreateView.as_view(), name='location-list'),
@@ -46,4 +48,5 @@ urlpatterns = [
     path('education/<int:pk>/', EducationDetailView.as_view(), name='education-detail'),
     path('career-history/', CareerHistoryListCreateView.as_view(), name='career-history-list'),
     path('career-history/<int:pk>/', CareerHistoryDetailView.as_view(), name='career-history-detail'),
+    path('featured-companies/', FeaturedCompanyListView.as_view(), name='featured-companies'),
 ] 

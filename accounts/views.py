@@ -15,6 +15,8 @@ from .serializers import (
     CareerHistorySerializer,
     UserRegistrationSerializer, JobSeekerSerializer2
 )
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
 
 User = get_user_model()
 
@@ -192,3 +194,38 @@ class CertificationDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Certification.objects.all()
     serializer_class = CertificationSerializer
     permission_classes = (permissions.IsAuthenticated,)
+
+class FeaturedCompanyListView(generics.ListAPIView):
+    serializer_class = CompanySerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return Company.objects.filter(is_verified=True).order_by('-id')
+
+class CustomPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class CompanyListView(generics.ListAPIView):
+    serializer_class = CompanySerializer
+    permission_classes = (permissions.AllowAny,)
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = Company.objects.filter(is_verified=True).order_by('-id')
+        search = self.request.query_params.get('search', None)
+        industry = self.request.query_params.get('industry', None)
+
+        if search:
+            queryset = queryset.filter(
+                Q(company_name__icontains=search) |
+                Q(description__icontains=search)
+            )
+        
+        if industry:
+            queryset = queryset.filter(industry__id=industry)
+
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, self.request)
+        return paginated_queryset
