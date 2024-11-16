@@ -94,10 +94,40 @@ class JobPostListCreateView(generics.ListCreateAPIView):
                 models.Q(requirements__icontains=keywords)
             )
         
-        # Classification (Unit Group) filter
-        classification = self.request.query_params.get('classification')
-        if classification:
-            queryset = queryset.filter(unit_group__slug=classification)
+        # ISCO Classification filters
+        major_groups = self.request.query_params.get('major_groups')
+        sub_major_groups = self.request.query_params.get('sub_major_groups')
+        minor_groups = self.request.query_params.get('minor_groups')
+        unit_groups = self.request.query_params.get('unit_groups')
+        
+        classification_query = models.Q()
+        
+        if major_groups:
+            major_group_list = major_groups.split(',')
+            classification_query |= models.Q(
+                unit_group__minor_group__sub_major_group__major_group__code__in=major_group_list
+            )
+        
+        if sub_major_groups:
+            sub_major_group_list = sub_major_groups.split(',')
+            classification_query |= models.Q(
+                unit_group__minor_group__sub_major_group__code__in=sub_major_group_list
+            )
+        
+        if minor_groups:
+            minor_group_list = minor_groups.split(',')
+            classification_query |= models.Q(
+                unit_group__minor_group__code__in=minor_group_list
+            )
+        
+        if unit_groups:
+            unit_group_list = unit_groups.split(',')
+            classification_query |= models.Q(
+                unit_group__code__in=unit_group_list
+            )
+        
+        if classification_query:
+            queryset = queryset.filter(classification_query)
             
         # Location filter
         location = self.request.query_params.get('location')
@@ -134,7 +164,7 @@ class JobPostListCreateView(generics.ListCreateAPIView):
             if date_threshold:
                 queryset = queryset.filter(posted_date__gte=date_threshold)
         
-        return queryset.order_by('-posted_date')
+        return queryset.order_by('-posted_date').distinct()
 
     def perform_create(self, serializer):
         if self.request.user.user_type != 'Employer':
