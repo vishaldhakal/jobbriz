@@ -164,6 +164,6 @@ class HireRequestAdmin(ModelAdmin):
     
     fieldsets = (
         (None, {
-            'fields': ('job', 'job_seeker', 'status', 'requested_date','message')
+            'fields': ('job', 'job_seeker', 'status', 'requested_date','message','seeker_message')
         }),
     )

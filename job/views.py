@@ -37,6 +37,15 @@ class SubMajorGroupListCreateView(generics.ListCreateAPIView):
     serializer_class = SubMajorGroupSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+        major_groups = self.request.query_params.get('major_groups')
+        if major_groups:
+            major_group_list = major_groups.split(',')
+            return SubMajorGroup.objects.filter(major_group__code__in=major_group_list)
+        return SubMajorGroup.objects.all()
+
+
+
 class SubMajorGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = SubMajorGroup.objects.all()
     serializer_class = SubMajorGroupSerializer
@@ -48,6 +57,13 @@ class MinorGroupListCreateView(generics.ListCreateAPIView):
     serializer_class = MinorGroupSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+        sub_major_groups = self.request.query_params.get('sub_major_groups')
+        if sub_major_groups:
+            sub_major_group_list = sub_major_groups.split(',')
+            return MinorGroup.objects.filter(sub_major_group__code__in=sub_major_group_list)
+        return MinorGroup.objects.all()
+
 class MinorGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = MinorGroup.objects.all()
     serializer_class = MinorGroupSerializer
@@ -58,6 +74,13 @@ class UnitGroupListCreateView(generics.ListCreateAPIView):
     queryset = UnitGroup.objects.all()
     serializer_class = UnitGroupSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        minor_groups = self.request.query_params.get('minor_groups')
+        if minor_groups:
+            minor_group_list = minor_groups.split(',')
+            return UnitGroup.objects.filter(minor_group__code__in=minor_group_list)
+        return UnitGroup.objects.all()
 
 class UnitGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = UnitGroup.objects.all()
@@ -104,25 +127,25 @@ class JobPostListCreateView(generics.ListCreateAPIView):
         
         if major_groups:
             major_group_list = major_groups.split(',')
-            classification_query |= models.Q(
+            classification_query &= models.Q(
                 unit_group__minor_group__sub_major_group__major_group__code__in=major_group_list
             )
         
         if sub_major_groups:
             sub_major_group_list = sub_major_groups.split(',')
-            classification_query |= models.Q(
+            classification_query &= models.Q(
                 unit_group__minor_group__sub_major_group__code__in=sub_major_group_list
             )
         
         if minor_groups:
             minor_group_list = minor_groups.split(',')
-            classification_query |= models.Q(
+            classification_query &= models.Q(
                 unit_group__minor_group__code__in=minor_group_list
             )
         
         if unit_groups:
             unit_group_list = unit_groups.split(',')
-            classification_query |= models.Q(
+            classification_query &= models.Q(
                 unit_group__code__in=unit_group_list
             )
         
@@ -233,12 +256,20 @@ class JobApplicationCreateView(generics.CreateAPIView):
         job_slug = self.kwargs.get('job_slug')
         job = get_object_or_404(JobPost, slug=job_slug)
         
-        if JobApplication.objects.filter(job=job, applicant=self.request.user.jobseeker).exists():
+        # Check if user has already applied
+        job_seeker = get_object_or_404(JobSeeker, user=self.request.user)
+        if JobApplication.objects.filter(job=job, applicant=job_seeker).exists():
             raise ValidationError("You have already applied for this job")
-        job_seeker = JobSeeker.objects.get(user=self.request.user)
+
+        # Create the application
         serializer.save(
             applicant=job_seeker,
             job=job
+        )
+
+        # Update the applications count atomically
+        JobPost.objects.filter(pk=job.pk).update(
+            applications_count=models.F('applications_count') + 1
         )
 
 class JobApplicationListView(generics.ListAPIView):

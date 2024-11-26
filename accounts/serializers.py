@@ -20,6 +20,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
+class UserSmallSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+
 class UserSerializer(serializers.ModelSerializer):
     jobseeker_data = serializers.SerializerMethodField()
     company_data = serializers.SerializerMethodField()

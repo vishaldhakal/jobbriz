@@ -13,6 +13,8 @@ class User(AbstractUser):
     USER_TYPE_CHOICES = [
         ('Employer', 'Employer'),
         ('Job Seeker', 'Job Seeker'),
+        ('Wisher', 'Wisher'),
+        ('Offerer', 'Offerer'),
     ]
     
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES)
@@ -37,6 +39,7 @@ class User(AbstractUser):
         verbose_name=_('user permissions'),
         help_text=_('Specific permissions for this user.')
     )
+
 
 class Skill(models.Model):
     name = models.CharField(max_length=50)

@@ -105,6 +105,7 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
     applications_count = serializers.IntegerField(read_only=True)
     views_count = serializers.IntegerField(read_only=True)
     has_already_applied = serializers.SerializerMethodField()
+    application_id = serializers.SerializerMethodField()
     
     def get_has_already_applied(self, obj):
         request = self.context.get('request')
@@ -116,6 +117,16 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
                 return False
         return False
     
+    def get_application_id(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                job_seeker = JobSeeker.objects.get(user=request.user)
+                application = JobApplication.objects.filter(job=obj, applicant=job_seeker).first()
+                return application.id if application else None
+            except JobSeeker.DoesNotExist:
+                return None 
+        return None
     class Meta:
         model = JobPost
         fields = '__all__'
@@ -178,5 +189,5 @@ class HireRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HireRequest
-        fields = ['id', 'job', 'job_seeker', 'requested_date', 'status','message']
+        fields = ['id', 'job', 'job_seeker', 'requested_date', 'status','message','seeker_message']
         read_only_fields = ['requested_date']

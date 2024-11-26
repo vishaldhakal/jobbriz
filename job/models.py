@@ -146,9 +146,6 @@ class JobApplication(models.Model):
         return f"Application for {self.job.title} by {self.applicant.user.username}"
     
     def save(self, *args, **kwargs):
-        if not self.pk:  # Only increment on creation
-            self.job.applications_count = models.F('applications_count') + 1
-            self.job.save()
         super().save(*args, **kwargs)
 
 class HireRequest(models.Model):
@@ -163,6 +160,7 @@ class HireRequest(models.Model):
     requested_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     message = models.TextField(blank=True, null=True)
+    seeker_message = models.TextField(blank=True, null=True)
 
     class Meta:
         unique_together = ('job', 'job_seeker')
