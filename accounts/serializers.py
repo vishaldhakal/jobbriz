@@ -17,6 +17,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                  'user_type', 'gender', 'phone_number', 'address')
 
     def create(self, validated_data):
+        error={}
+        if User.objects.filter(email=validated_data['email']).exists():
+            error['email']='Email already exists'
+        if User.objects.filter(username=validated_data['username']).exists():
+            error['username']='Username already exists'
+        if error:
+            raise serializers.ValidationError(error)
         user = User.objects.create_user(**validated_data)
         return user
 

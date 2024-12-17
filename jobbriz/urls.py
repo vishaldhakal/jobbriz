@@ -8,6 +8,9 @@ urlpatterns = [
     path('api/', include('job.urls')),
     path('api/', include('accounts.urls')),
     path('api/', include('careeradvice.urls')),
+    path('api/',include('events.urls')),
+    path('api/',include('business_registration.urls')),
+    path('api/',include('wish_and_offers.urls')),
 ]
 
 

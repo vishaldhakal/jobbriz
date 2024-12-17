@@ -175,3 +175,48 @@ class SavedJob(models.Model):
 
     def __str__(self):
         return f"Saved job {self.job.title} by {self.job_seeker.user.username}"
+
+
+class ApprenticeshipCategory(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    description = models.TextField()
+
+    def __str__(self):
+        return self.name
+
+class Apprenticeship(models.Model):
+    LEVEL_CHOICES = [
+        ('Level 1', 'Level 1'),
+        ('Level 2', 'Level 2'),
+        ('Level 3', 'Level 3'),
+        ('Level 4', 'Level 4'),
+        ('Level 5', 'Level 5'),
+        ('Level 6', 'Level 6'),
+        ('Level 7', 'Level 7'),
+        ('Level 8', 'Level 8'),
+        ('None', 'None'),
+    ]
+    DURATION_CHOICES = [
+        ('6 months', '6 months'),
+        ('12 months', '12 months'),
+        ('18 months', '18 months'),
+        ('24 months', '24 months'),
+        ('30 months', '30 months'),
+        ('36 months', '36 months'),
+        ('None', 'None'),
+    ]
+    title = models.CharField(max_length=255)
+    slug=models.SlugField(max_length=255, unique=True, blank=True)
+    level=models.CharField(max_length=20, choices=LEVEL_CHOICES,default='None')
+    overview_of_role=models.TextField()
+    duration=models.CharField(max_length=20, choices=DURATION_CHOICES,default='None')
+    category=models.ForeignKey(ApprenticeshipCategory, on_delete=models.CASCADE,related_name='apprenticeships')
+    created_by=models.ForeignKey('accounts.Company', on_delete=models.CASCADE,related_name='apprenticeships_created')
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    occupation_summary=models.TextField()
+    occupation_description=models.TextField()
+
+    def __str__(self):
+        return f"{self.title} - {self.created_by.company_name}"

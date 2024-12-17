@@ -69,9 +69,19 @@ class JobListAllSerializer(serializers.ModelSerializer):
     location = LocationSmallSerializer(many=True, read_only=True)
     company = CompanySmallSerializer(read_only=True)
     unit_group = UnitGroupSmallSerializer(read_only=True)
+    has_already_saved = serializers.SerializerMethodField()
+    def get_has_already_saved(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                job_seeker = JobSeeker.objects.get(user=request.user)
+                return SavedJob.objects.filter(job=obj, job_seeker=job_seeker).exists()
+            except JobSeeker.DoesNotExist:
+                return False
+        return False
     class Meta:
         model = JobPost
-        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type', 'applications_count', 'views_count','company','salary_range_min','salary_range_max','show_salary','unit_group']
+        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type', 'applications_count', 'views_count','company','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved']
         depth = 2
 
 class JobPostListSerializer(serializers.ModelSerializer):
