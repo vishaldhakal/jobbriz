@@ -423,6 +423,27 @@ class ApprenticeshipListCreateView(generics.ListCreateAPIView):
     serializer_class = ApprenticeshipSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        query = models.Q()
+        
+        # Filter by level
+        levels = self.request.query_params.get('level')
+        if levels:
+            query &= models.Q(level__in=levels)
+
+        # Filter by category
+        categories = self.request.query_params.get('category')
+        if categories:
+            query &= models.Q(category__id__in=categories)
+
+        # Filter by title
+        title = self.request.query_params.get('title')
+        if title:
+            query &= models.Q(title__icontains=title)  # Added title filter
+        
+        return queryset.filter(query)
+
 class ApprenticeshipRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Apprenticeship.objects.all()
     serializer_class = ApprenticeshipSerializer
