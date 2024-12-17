@@ -8,7 +8,9 @@ from .models import (
     JobPost, 
     JobApplication, 
     SavedJob,
-    HireRequest
+    HireRequest,
+    Apprenticeship,
+    ApprenticeshipCategory
 )
 
 @admin.register(MajorGroup)
@@ -167,3 +169,6 @@ class HireRequestAdmin(ModelAdmin):
             'fields': ('job', 'job_seeker', 'status', 'requested_date','message','seeker_message')
         }),
     )
+
+admin.site.register(Apprenticeship)
+admin.site.register(ApprenticeshipCategory)
