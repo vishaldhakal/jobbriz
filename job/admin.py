@@ -170,5 +170,5 @@ class HireRequestAdmin(ModelAdmin):
         }),
     )
 
-admin.site.register(Apprenticeship)
-admin.site.register(ApprenticeshipCategory)
+admin.site.register(Apprenticeship,ModelAdmin)
+admin.site.register(ApprenticeshipCategory,ModelAdmin)

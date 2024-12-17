@@ -177,15 +177,15 @@ class SavedJob(models.Model):
         return f"Saved job {self.job.title} by {self.job_seeker.user.username}"
 
 
-class ApprenticeshipCategory(models.Model):
-    name = models.CharField(max_length=255)
+class ApprenticeshipCategory(SlugMixin,models.Model):
+    title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = models.TextField()
 
     def __str__(self):
-        return self.name
+        return self.title
 
-class Apprenticeship(models.Model):
+class Apprenticeship(SlugMixin,models.Model):
     LEVEL_CHOICES = [
         ('Level 1', 'Level 1'),
         ('Level 2', 'Level 2'),
