@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import (MajorGroup, SubMajorGroup, MinorGroup, UnitGroup,
-                    JobPost, JobApplication, SavedJob, HireRequest)
+                    JobPost, JobApplication, SavedJob, HireRequest,
+                    Apprenticeship, ApprenticeshipCategory)
 from accounts.serializers import CompanySerializer, LocationSerializer, JobSeekerSerializer
 from accounts.models import Company, Location, JobSeeker
 class MajorGroupSerializer(serializers.ModelSerializer):
@@ -201,3 +202,13 @@ class HireRequestSerializer(serializers.ModelSerializer):
         model = HireRequest
         fields = ['id', 'job', 'job_seeker', 'requested_date', 'status','message','seeker_message']
         read_only_fields = ['requested_date']
+
+class ApprenticeshipCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ApprenticeshipCategory
+        fields = '__all__'  # or specify the fields you want to include
+
+class ApprenticeshipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Apprenticeship
+        fields = '__all__'  # or specify the fields you want to include

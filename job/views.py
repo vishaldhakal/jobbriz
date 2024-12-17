@@ -6,7 +6,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import APIException, ValidationError
 from .models import (
     MajorGroup, SubMajorGroup, MinorGroup, UnitGroup,
-    JobPost, JobApplication, SavedJob, HireRequest
+    JobPost, JobApplication, SavedJob, HireRequest,
+    Apprenticeship, ApprenticeshipCategory
 )
 from .serializers import (
     MajorGroupSerializer, SubMajorGroupSerializer,
@@ -14,7 +15,8 @@ from .serializers import (
     JobPostListSerializer, JobPostDetailSerializer,
     JobApplicationSerializer, JobApplicationStatusUpdateSerializer,
     SavedJobSerializer, JobListAllSerializer, HireRequestSerializer,
-    HireRequestStatusUpdateSerializer
+    HireRequestStatusUpdateSerializer,
+    ApprenticeshipCategorySerializer, ApprenticeshipSerializer
 )
 from accounts.models import Company, JobSeeker
 from django.db import models
@@ -404,3 +406,24 @@ class HireRequestStatusUpdateView(generics.UpdateAPIView):
             job_seeker = JobSeeker.objects.get(user=user)
             return HireRequest.objects.filter(job_seeker=job_seeker)
         return HireRequest.objects.none()
+
+class ApprenticeshipCategoryListCreateView(generics.ListCreateAPIView):
+    queryset = ApprenticeshipCategory.objects.all()
+    serializer_class = ApprenticeshipCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ApprenticeshipCategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ApprenticeshipCategory.objects.all()
+    serializer_class = ApprenticeshipCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class ApprenticeshipListCreateView(generics.ListCreateAPIView):
+    queryset = Apprenticeship.objects.all()
+    serializer_class = ApprenticeshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class ApprenticeshipRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Apprenticeship.objects.all()
+    serializer_class = ApprenticeshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
