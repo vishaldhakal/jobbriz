@@ -416,31 +416,124 @@ class ApprenticeshipCategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDes
     queryset = ApprenticeshipCategory.objects.all()
     serializer_class = ApprenticeshipCategorySerializer
 
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            # Allow anyone to retrieve
+            return [permissions.AllowAny()]
+        # Require authentication for PUT, PATCH, DELETE
+        return [permissions.IsAuthenticated()]
+
+    def perform_update(self, serializer):
+        if self.request.user.user_type != 'Employer':
+            raise ValidationError("Only employers can update apprenticeship categories")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if self.request.user.user_type != 'Employer':
+            raise ValidationError("Only employers can delete apprenticeship categories")
+        instance.delete()
+
 class ApprenticeshipListCreateView(generics.ListCreateAPIView):
-    queryset = Apprenticeship.objects.all()
     serializer_class = ApprenticeshipSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    pagination_class = CustomPagination
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = Apprenticeship.objects.all()
+        # If user is authenticated and is an employer, filter by their company
+        if self.request.user.is_authenticated and hasattr(self.request, 'user_type'):
+            if self.request.user.user_type == 'Employer':
+                company = Company.objects.get(user=self.request.user)
+                queryset = queryset.filter(created_by=company)
+        
+        # Apply filters
         query = models.Q()
         
         # Filter by level
         levels = self.request.query_params.get('level')
         if levels:
-            query &= models.Q(level__in=levels)
+            query &= models.Q(level__in=levels.split(','))
 
         # Filter by category
         categories = self.request.query_params.get('category')
         if categories:
-            query &= models.Q(category__id__in=categories)
+            query &= models.Q(category__id__in=categories.split(','))
 
         # Filter by title
         title = self.request.query_params.get('title')
         if title:
-            query &= models.Q(title__icontains=title)  # Added title filter
+            query &= models.Q(title__icontains=title)
+            
+        # Filter by company
+        company_slug = self.request.query_params.get('company')
+        if company_slug:
+            query &= models.Q(created_by__slug=company_slug)
         
-        return queryset.filter(query)
+        return queryset.filter(query).select_related('created_by', 'category').order_by('-created_at')
+
+    def perform_create(self, serializer):
+        try:
+            if self.request.user.user_type != 'Employer':
+                raise ValidationError("Only employers can create apprenticeships")
+            
+            company = Company.objects.get(user=self.request.user)
+            category_id = self.request.data.get('category')
+            category = get_object_or_404(ApprenticeshipCategory, id=category_id)
+            
+            serializer.save(
+                created_by=company,
+                category=category
+            )
+        except Company.DoesNotExist:
+            raise ValidationError("Company profile not found for this user")
+        except ApprenticeshipCategory.DoesNotExist:
+            raise ValidationError("Invalid category selected")
+        except Exception as e:
+            raise ValidationError(f"Error creating apprenticeship: {str(e)}")
+
+    def create(self, request, *args, **kwargs):
+        try:
+            if request.user.user_type != 'Employer':
+                raise ValidationError("Only employers can create apprenticeships")
+            
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            raise ValidationError(str(e))
 
 class ApprenticeshipRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Apprenticeship.objects.all()
     serializer_class = ApprenticeshipSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def perform_update(self, serializer):
+        if self.request.user.user_type != 'Employer':
+            raise ValidationError("Only employers can update apprenticeships")
+        
+        # Ensure employer can only update their own apprenticeships
+        if serializer.instance.created_by.user != self.request.user:
+            raise ValidationError("You can only update your own apprenticeships")
+            
+        category_id = self.request.data.get('category')
+        if category_id:
+            category = get_object_or_404(ApprenticeshipCategory, id=category_id)
+            serializer.save(category=category)
+        else:
+            serializer.save()
+
+    def perform_destroy(self, instance):
+        if self.request.user.user_type != 'Employer':
+            raise ValidationError("Only employers can delete apprenticeships")
+            
+        # Ensure employer can only delete their own apprenticeships
+        if instance.created_by.user != self.request.user:
+            raise ValidationError("You can only delete your own apprenticeships")
+            
+        instance.delete()

@@ -209,6 +209,16 @@ class ApprenticeshipCategorySerializer(serializers.ModelSerializer):
         fields = '__all__'  # or specify the fields you want to include
 
 class ApprenticeshipSerializer(serializers.ModelSerializer):
+    category = ApprenticeshipCategorySerializer(read_only=True)
+    created_by = CompanySmallSerializer(read_only=True)
+    category_id = serializers.IntegerField(write_only=True)
+
     class Meta:
         model = Apprenticeship
-        fields = '__all__'  # or specify the fields you want to include
+        fields = [
+            'id', 'title', 'level', 'duration', 'overview_of_role',
+            'occupation_summary', 'occupation_description', 
+            'category', 'category_id', 'created_by',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_by', 'created_at', 'updated_at']
