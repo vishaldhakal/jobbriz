@@ -410,18 +410,15 @@ class HireRequestStatusUpdateView(generics.UpdateAPIView):
 class ApprenticeshipCategoryListCreateView(generics.ListCreateAPIView):
     queryset = ApprenticeshipCategory.objects.all()
     serializer_class = ApprenticeshipCategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 
 class ApprenticeshipCategoryRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = ApprenticeshipCategory.objects.all()
     serializer_class = ApprenticeshipCategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 class ApprenticeshipListCreateView(generics.ListCreateAPIView):
     queryset = Apprenticeship.objects.all()
     serializer_class = ApprenticeshipSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -447,4 +444,3 @@ class ApprenticeshipListCreateView(generics.ListCreateAPIView):
 class ApprenticeshipRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Apprenticeship.objects.all()
     serializer_class = ApprenticeshipSerializer
-    permission_classes = [permissions.IsAuthenticated]
