@@ -222,3 +222,11 @@ class ApprenticeshipSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['created_by', 'created_at', 'updated_at']
+
+class ImportGroupsSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    def validate_file(self, value):
+        if not value.name.endswith('.csv'):
+            raise serializers.ValidationError("File must be a CSV.")
+        return value

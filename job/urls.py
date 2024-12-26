@@ -41,4 +41,7 @@ urlpatterns = [
     path('apprenticeship-categories/<int:pk>/', views.ApprenticeshipCategoryRetrieveUpdateDestroyView.as_view(), name='apprenticeship-category-detail'),
     path('apprenticeships/', views.ApprenticeshipListCreateView.as_view(), name='apprenticeship-list-create'),
     path('apprenticeships/<int:pk>/', views.ApprenticeshipRetrieveUpdateDestroyView.as_view(), name='apprenticeship-detail'),
+
+    path('upload-isco-data/', views.UploadISCODataView.as_view(), name='upload_isco_data'),
+
 ] 

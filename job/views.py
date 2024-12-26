@@ -16,11 +16,16 @@ from .serializers import (
     JobApplicationSerializer, JobApplicationStatusUpdateSerializer,
     SavedJobSerializer, JobListAllSerializer, HireRequestSerializer,
     HireRequestStatusUpdateSerializer,
-    ApprenticeshipCategorySerializer, ApprenticeshipSerializer
+    ApprenticeshipCategorySerializer, ApprenticeshipSerializer,
+    ImportGroupsSerializer
 )
 from accounts.models import Company, JobSeeker
 from django.db import models
 from django.utils import timezone
+import csv
+import io
+from rest_framework.views import APIView
+from io import TextIOWrapper
 
 
 class MajorGroupListCreateView(generics.ListCreateAPIView):
@@ -537,3 +542,75 @@ class ApprenticeshipRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIV
             raise ValidationError("You can only delete your own apprenticeships")
             
         instance.delete()
+
+
+class UploadISCODataView(APIView):
+    """
+    API view to upload ISCO data from a CSV file.
+    """
+    serializer_class = ImportGroupsSerializer
+
+    def post(self, request, *args, **kwargs):
+        # Validate the incoming data using ImportGroupsSerializer
+        serializer = ImportGroupsSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the file is provided
+        csv_file = request.FILES.get('file')
+        if not csv_file:
+            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Process the CSV file
+        try:
+            csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
+            reader = csv.DictReader(csv_file_wrapper)
+
+            for row in reader:
+                # Ensure the required keys are present
+                if 'major_group_code' not in row or 'sub_major_group_code' not in row or 'minor_group_code' not in row or 'unit_group_code' not in row:
+                    return Response({"error": "Missing required fields in row."}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Create or get MajorGroup
+                major_group, _ = MajorGroup.objects.get_or_create(
+                    code=row['major_group_code'].strip(),
+                    defaults={
+                        'title': row['major_group_title'].strip(),
+                        'description': row.get('major_group_description', '').strip()  # Adjust if you have a description column
+                    }
+                )
+
+                # Create or get SubMajorGroup
+                sub_major_group, _ = SubMajorGroup.objects.get_or_create(
+                    code=row['sub_major_group_code'].strip(),
+                    major_group=major_group,
+                    defaults={
+                        'title': row['sub_major_group_title'].strip(),
+                        'description': row.get('sub_major_group_description', '').strip()  # Adjust if you have a description column
+                    }
+                )
+
+                # Create or get MinorGroup
+                minor_group, _ = MinorGroup.objects.get_or_create(
+                    code=row['minor_group_code'].strip(),
+                    sub_major_group=sub_major_group,
+                    defaults={
+                        'title': row['minor_group_title'].strip(),
+                        'description': row.get('minor_group_description', '').strip()  # Adjust if you have a description column
+                    }
+                )
+
+                # Create or get UnitGroup
+                UnitGroup.objects.get_or_create(
+                    code=row['unit_group_code'].strip(),
+                    minor_group=minor_group,
+                    defaults={
+                        'title': row['unit_group_title'].strip(),
+                        'description': row.get('unit_group_description', '').strip()  # Adjust if you have a description column
+                    }
+                )
+
+            return Response({"message": "Data uploaded successfully."}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
