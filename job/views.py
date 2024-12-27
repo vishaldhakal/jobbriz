@@ -1,9 +1,13 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.db.models import F
 from rest_framework import generics, permissions, status, views
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.views import APIView
+import csv
+from io import TextIOWrapper
+
 from .models import (
     MajorGroup, SubMajorGroup, MinorGroup, UnitGroup,
     JobPost, JobApplication, SavedJob, HireRequest,
@@ -560,56 +564,86 @@ class UploadISCODataView(APIView):
         if not csv_file:
             return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Process the CSV file
         try:
-            csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
+            csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8-sig')  # Handle BOM with utf-8-sig
             reader = csv.DictReader(csv_file_wrapper)
 
+            # Normalize headers (strip spaces, remove BOM, etc.)
+            reader.fieldnames = [field.strip().replace('\ufeff', '') for field in reader.fieldnames]
+
             for row in reader:
-                # Ensure the required keys are present
-                if 'major_group_code' not in row or 'sub_major_group_code' not in row or 'minor_group_code' not in row or 'unit_group_code' not in row:
-                    return Response({"error": "Missing required fields in row."}, status=status.HTTP_400_BAD_REQUEST)
+                # Ensure required keys are present
+                if 'ISCO 08 Code' not in row or 'Title EN' not in row or 'Definition' not in row:
+                    return Response({"error": "Missing required fields in CSV row."}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Create or get MajorGroup
-                major_group, _ = MajorGroup.objects.get_or_create(
-                    code=row['major_group_code'].strip(),
-                    defaults={
-                        'title': row['major_group_title'].strip(),
-                        'description': row.get('major_group_description', '').strip()  # Adjust if you have a description column
-                    }
-                )
+                code = row['ISCO 08 Code'].strip()
+                title = row['Title EN'].strip()
+                description = row['Definition'].strip()
+                code_length = len(code)
 
-                # Create or get SubMajorGroup
-                sub_major_group, _ = SubMajorGroup.objects.get_or_create(
-                    code=row['sub_major_group_code'].strip(),
-                    major_group=major_group,
-                    defaults={
-                        'title': row['sub_major_group_title'].strip(),
-                        'description': row.get('sub_major_group_description', '').strip()  # Adjust if you have a description column
-                    }
-                )
+                # Create or Get Major Group
+                if code_length == 1:
+                    major_group, _ = MajorGroup.objects.get_or_create(
+                        code=code,
+                        defaults={
+                            'title': title,
+                            'description': description,
+                            'slug': f"major-{code}"
+                        }
+                    )
 
-                # Create or get MinorGroup
-                minor_group, _ = MinorGroup.objects.get_or_create(
-                    code=row['minor_group_code'].strip(),
-                    sub_major_group=sub_major_group,
-                    defaults={
-                        'title': row['minor_group_title'].strip(),
-                        'description': row.get('minor_group_description', '').strip()  # Adjust if you have a description column
-                    }
-                )
+                # Create or Get Sub-Major Group
+                elif code_length == 2:
+                    major_group, _ = MajorGroup.objects.get_or_create(
+                        code=code[0]
+                    )
+                    sub_major_group, _ = SubMajorGroup.objects.get_or_create(
+                        code=code,
+                        major_group=major_group,
+                        defaults={
+                            'title': title,
+                            'description': description,
+                            'slug': f"sub-major-{code}"
+                        }
+                    )
 
-                # Create or get UnitGroup
-                UnitGroup.objects.get_or_create(
-                    code=row['unit_group_code'].strip(),
-                    minor_group=minor_group,
-                    defaults={
-                        'title': row['unit_group_title'].strip(),
-                        'description': row.get('unit_group_description', '').strip()  # Adjust if you have a description column
-                    }
-                )
+                # Create or Get Minor Group
+                elif code_length == 3:
+                    sub_major_group, _ = SubMajorGroup.objects.get_or_create(
+                        code=code[:2]
+                    )
+                    minor_group, _ = MinorGroup.objects.get_or_create(
+                        code=code,
+                        sub_major_group=sub_major_group,
+                        defaults={
+                            'title': title,
+                            'description': description,
+                            'slug': f"minor-{code}"
+                        }
+                    )
+
+                # Create or Get Unit Group
+                elif code_length == 4:
+                    minor_group, _ = MinorGroup.objects.get_or_create(
+                        code=code[:3]
+                    )
+                    UnitGroup.objects.get_or_create(
+                        code=code,
+                        minor_group=minor_group,
+                        defaults={
+                            'title': title,
+                            'description': description,
+                            'slug': f"unit-{code}"
+                        }
+                    )
 
             return Response({"message": "Data uploaded successfully."}, status=status.HTTP_201_CREATED)
 
+        except MajorGroup.DoesNotExist:
+            return Response({"error": "MajorGroup matching query does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        except SubMajorGroup.DoesNotExist:
+            return Response({"error": "SubMajorGroup matching query does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        except MinorGroup.DoesNotExist:
+            return Response({"error": "MinorGroup matching query does not exist"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
