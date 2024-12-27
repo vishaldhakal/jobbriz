@@ -70,6 +70,8 @@ class JobListAllSerializer(serializers.ModelSerializer):
     location = LocationSmallSerializer(many=True, read_only=True)
     company = CompanySmallSerializer(read_only=True)
     unit_group = UnitGroupSmallSerializer(read_only=True)
+    job_post_count=serializers.SerializerMethodField()
+    total_applicant_count=serializers.SerializerMethodField()
     has_already_saved = serializers.SerializerMethodField()
     def get_has_already_saved(self, obj):
         request = self.context.get('request')
@@ -80,6 +82,19 @@ class JobListAllSerializer(serializers.ModelSerializer):
             except JobSeeker.DoesNotExist:
                 return False
         return False
+    def get_job_post_count(self, obj):
+        request=self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            company=Company.objects.get(user=request.user)
+            return JobPost.objects.filter(company=company).count()
+        return 0
+    def get_total_applicant_count(self, obj):
+        request=self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            company=Company.objects.get(user=request.user)
+            return JobApplication.objects.filter(job__company=company).count()
+        return 0
+
     class Meta:
         model = JobPost
         fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type', 'applications_count', 'views_count','company','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved']
