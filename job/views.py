@@ -326,9 +326,8 @@ class SavedJobToggleView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, job_slug):
-        if not hasattr(request.user, 'jobseeker'):
-            raise ValidationError("Only job seekers can save jobs")
-            
+        if request.user.user_type != 'Job Seeker':
+            raise ValidationError("Only job seekers can save jobs")  
         job = get_object_or_404(JobPost, slug=job_slug)
         saved_job, created = SavedJob.objects.get_or_create(
             job_seeker=request.user.jobseeker,
