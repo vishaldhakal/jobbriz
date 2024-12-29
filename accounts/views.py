@@ -27,8 +27,9 @@ class RegisterView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save()  # Create the user
-        # Automatically create a JobSeeker instance
-        JobSeeker.objects.create(user=user)  # Create JobSeeker linked to the user
+        # Check if the user type is JobSeeker before creating a JobSeeker instance
+        if user.user_type == 'jobseeker':  # Assuming 'user_type' is the field that indicates the type
+            JobSeeker.objects.create(user=user)  # Create JobSeeker linked to the user
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
