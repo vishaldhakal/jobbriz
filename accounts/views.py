@@ -25,6 +25,11 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = (permissions.AllowAny,)
 
+    def perform_create(self, serializer):
+        user = serializer.save()  # Create the user
+        # Automatically create a JobSeeker instance
+        JobSeeker.objects.create(user=user)  # Create JobSeeker linked to the user
+
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticated,)
