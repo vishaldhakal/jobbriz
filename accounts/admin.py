@@ -8,7 +8,7 @@ from .models import (
 )
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(UserAdmin, ModelAdmin):
     list_display = ('username', 'email', 'user_type', 'phone_number', 'is_staff')
     list_filter = ('user_type', 'gender', 'is_staff', 'is_active')
     search_fields = ('username', 'email', 'phone_number')
