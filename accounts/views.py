@@ -31,6 +31,9 @@ class RegisterView(generics.CreateAPIView):
         if user.user_type == 'Job Seeker':  # Assuming 'user_type' is the field that indicates the type
             JobSeeker.objects.create(user=user)  # Create JobSeeker linked to the user
 
+        elif user.user_type == 'Employer':
+            Company.objects.create(user=user)
+
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticated,)
@@ -75,6 +78,11 @@ class CompanyDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == 'GET':
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+
+    def get_serializer_class(self):
+        if self.request.method in ['PATCH', 'PUT', 'POST']:
+            return CompanySerializer  # Use the same serializer for updates
+        return CompanySerializer  # Default to the same serializer for retrieval
 
 class LocationListCreateView(generics.ListCreateAPIView):
     queryset = Location.objects.all()
