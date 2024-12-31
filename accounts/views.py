@@ -131,8 +131,8 @@ class EducationListCreateView(generics.ListCreateAPIView):
         except JobSeeker.DoesNotExist:
             raise APIException("You must have a JobSeeker profile to add education records.")
         
-        if Education.objects.filter(year_of_completion=serializer.validated_data['year_of_completion']).exists():
-            raise APIException("You have already added an education record for this year.")
+        # if Education.objects.filter(year_of_completion=serializer.validated_data['year_of_completion']).exists():
+        #     raise APIException("You have already added an education record for this year.")
         
         if Education.objects.filter(course_or_qualification=serializer.validated_data['course_or_qualification']).exists():
             raise APIException("You have already added an education record for this course or qualification.")
