@@ -97,7 +97,7 @@ class JobListAllSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobPost
-        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type', 'applications_count', 'views_count','company','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved']
+        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type', 'applications_count', 'views_count','company','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved','total_applicant_count','job_post_count']
         depth = 2
 
 class JobPostListSerializer(serializers.ModelSerializer):
