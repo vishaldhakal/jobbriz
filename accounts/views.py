@@ -160,6 +160,24 @@ class CareerHistoryListCreateView(generics.ListCreateAPIView):
         except JobSeeker.DoesNotExist:
             raise APIException("You must have a JobSeeker profile to add career history records.")
         
+        # Get the new career history data
+        new_start_date = serializer.validated_data.get('start_date')
+        new_end_date = serializer.validated_data.get('end_date')
+
+        # Check if there is an ongoing career history record
+        ongoing_records = job_seeker.career_history.filter(end_date__isnull=True)
+        if ongoing_records.exists():
+            raise APIException("You must end your current career history before adding a new one.")
+
+        # Check for overlapping career history records
+        overlapping_records = job_seeker.career_history.filter(
+            (Q(start_date__lte=new_end_date) & Q(end_date__gte=new_start_date)) |
+            (Q(start_date__gte=new_start_date) & Q(end_date__lte=new_end_date))
+        )
+
+        if overlapping_records.exists():
+            raise APIException("The new career history overlaps with existing records. Please adjust the dates.")
+
         # Create the career history record
         career_history = serializer.save()
         # Add it to the JobSeeker's career history

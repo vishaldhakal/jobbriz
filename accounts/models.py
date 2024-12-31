@@ -54,11 +54,12 @@ class Language(models.Model):
         return self.name
 
 class Certification(models.Model):
-    name = models.CharField(max_length=50)
-    issuing_organisation = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
+    issuing_organisation = models.CharField(max_length=200)
     issue_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
     description = models.TextField(blank=True)
+    image=models.FileField(upload_to='certifications/', null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -151,7 +152,7 @@ class JobSeeker(models.Model):
     education = models.ManyToManyField(Education, blank=True)
     career_history = models.ManyToManyField(CareerHistory, blank=True,related_name='job_seeker_career_history')
     preferred_unit_groups = models.ManyToManyField('job.UnitGroup', blank=True,related_name='job_seeker_preferred_unit_groups')
-    work_experience = models.PositiveIntegerField(default=0, blank=True, null=True)
+    work_experience = models.CharField(max_length=200,blank=True, null=True)
     skills = models.ManyToManyField(Skill, blank=True,related_name='job_seeker_skills')
     preferred_locations = models.ManyToManyField(Location, blank=True,related_name='job_seeker_preferred_locations')
     preferred_salary_range_from = models.IntegerField(default=0,blank=True, null=True)
