@@ -100,6 +100,7 @@ class JobListAllSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type', 'applications_count', 'views_count','company','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved','total_applicant_count','job_post_count']
         depth = 2
 
+
 class JobPostListSerializer(serializers.ModelSerializer):
     company = CompanySerializer(read_only=True)
     location = serializers.PrimaryKeyRelatedField(
@@ -208,13 +209,45 @@ class HireRequestStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = HireRequest
         fields = ['status']
+class HireJobPostListSerializer(serializers.ModelSerializer):
+
+    application_id = serializers.SerializerMethodField()
+    location = LocationSmallSerializer(many=True, read_only=True)
+    unit_group = UnitGroupSmallSerializer(read_only=True)
+    has_already_saved = serializers.SerializerMethodField()
+    
+    def get_has_already_saved(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                job_seeker = JobSeeker.objects.get(user=request.user)
+                return SavedJob.objects.filter(job=obj, job_seeker=job_seeker).exists()
+            except JobSeeker.DoesNotExist:
+                return False
+        return False    
+
+    def get_application_id(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                job_seeker = JobSeeker.objects.get(user=request.user)
+                application = JobApplication.objects.filter(job=obj, applicant=job_seeker).first()
+                return application.id if application else None
+            except JobSeeker.DoesNotExist:
+                return None 
+        return None
+    class Meta:
+        model = JobPost
+        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved']
+        depth = 2
         
 class HireRequestSerializer(serializers.ModelSerializer):
+    job = HireJobPostListSerializer(read_only=True)
     job_seeker = JobSeekerSerializer(read_only=True)
 
     class Meta:
         model = HireRequest
-        fields = ['id', 'job_seeker', 'requested_date', 'status','message','seeker_message']
+        fields = ['id', 'job', 'job_seeker', 'requested_date', 'status','message','seeker_message']
         read_only_fields = ['requested_date']
 
 class ApprenticeshipCategorySerializer(serializers.ModelSerializer):
