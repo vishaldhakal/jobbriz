@@ -209,13 +209,13 @@ class HireRequestStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = HireRequest
         fields = ['status']
-class HireJobPostListSerializer(serializers.ModelSerializer):
 
+class HireJobPostListSerializer(serializers.ModelSerializer):
     application_id = serializers.SerializerMethodField()
     location = LocationSmallSerializer(many=True, read_only=True)
     unit_group = UnitGroupSmallSerializer(read_only=True)
     has_already_saved = serializers.SerializerMethodField()
-    
+
     def get_has_already_saved(self, obj):
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
@@ -238,7 +238,7 @@ class HireJobPostListSerializer(serializers.ModelSerializer):
         return None
     class Meta:
         model = JobPost
-        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved']
+        fields = ['id', 'title', 'slug','location', 'status', 'posted_date', 'deadline', 'employment_type','salary_range_min','salary_range_max','show_salary','unit_group','has_already_saved','application_id']
         depth = 2
         
 class HireRequestSerializer(serializers.ModelSerializer):
