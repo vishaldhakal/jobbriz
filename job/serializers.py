@@ -210,12 +210,11 @@ class HireRequestStatusUpdateSerializer(serializers.ModelSerializer):
         fields = ['status']
         
 class HireRequestSerializer(serializers.ModelSerializer):
-    job = JobListAllSerializer(read_only=True)
     job_seeker = JobSeekerSerializer(read_only=True)
 
     class Meta:
         model = HireRequest
-        fields = ['id', 'job', 'job_seeker', 'requested_date', 'status','message','seeker_message']
+        fields = ['id', 'job_seeker', 'requested_date', 'status','message','seeker_message']
         read_only_fields = ['requested_date']
 
 class ApprenticeshipCategorySerializer(serializers.ModelSerializer):

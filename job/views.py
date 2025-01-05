@@ -385,7 +385,7 @@ class HireRequestListView(generics.ListAPIView):
         if user.user_type == 'Employer':
             company = Company.objects.get(user=user)
             return HireRequest.objects.filter(job__company=company)
-        elif user.user_type == 'Job Seeker':
+        if user.user_type == 'Job Seeker':
             job_seeker = JobSeeker.objects.get(user=user)
             return HireRequest.objects.filter(job_seeker=job_seeker)
         return HireRequest.objects.none()
