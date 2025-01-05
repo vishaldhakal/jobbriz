@@ -22,7 +22,7 @@ User = get_user_model()
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserRegistrationSerializer
+    serializer_class = UserRegistrationSerializer 
     permission_classes = (permissions.AllowAny,)
 
     def perform_create(self, serializer):
@@ -32,7 +32,21 @@ class RegisterView(generics.CreateAPIView):
             JobSeeker.objects.create(user=user)  # Create JobSeeker linked to the user
 
         elif user.user_type == 'Employer':
-            Company.objects.create(user=user)
+            # Get company data from request payload
+            company_data = self.request.data
+            industry_id = company_data.get('industry_id')
+            industry = Industry.objects.get(id=industry_id)
+            Company.objects.create(
+                user=user,
+                company_name=company_data.get('company_name'),
+                company_email=company_data.get('company_email'),
+                company_size=company_data.get('company_size'),
+                company_website=company_data.get('company_website'),
+                company_description=company_data.get('description'),
+                industry=industry,
+                registration_number=company_data.get('registration_number'),
+                logo=company_data.get('logo'),
+            )
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
