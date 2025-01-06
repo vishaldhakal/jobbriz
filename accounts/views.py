@@ -36,7 +36,7 @@ class RegisterView(generics.CreateAPIView):
             company_data = self.request.data
             industry_id = company_data.get('industry_id')
             industry = Industry.objects.get(id=industry_id)
-            Company.objects.create(
+            company = Company.objects.create(
                 user=user,
                 company_name=company_data.get('company_name'),
                 company_email=company_data.get('company_email'),
@@ -45,8 +45,10 @@ class RegisterView(generics.CreateAPIView):
                 description=company_data.get('description'),
                 industry=industry,
                 registration_number=company_data.get('registration_number'),
-                logo=company_data.get('logo'),
             )
+            if company_data.get('logo'):
+                company.logo = company_data.get('logo')
+                company.save()
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
