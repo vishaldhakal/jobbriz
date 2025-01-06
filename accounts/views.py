@@ -28,14 +28,15 @@ class RegisterView(generics.CreateAPIView):
     def perform_create(self, serializer):
         user = serializer.save()  # Create the user
         # Check if the user type is JobSeeker before creating a JobSeeker instance
-        if user.user_type == 'Job Seeker':  # Assuming 'user_type' is the field that indicates the type
-            JobSeeker.objects.create(user=user)  # Create JobSeeker linked to the user
+        if user.user_type == 'Job Seeker':
+            JobSeeker.objects.create(user=user)
 
         elif user.user_type == 'Employer':
             # Get company data from request payload
             company_data = self.request.data
             industry_id = company_data.get('industry_id')
             industry = Industry.objects.get(id=industry_id)
+            logo = self.request.FILES.get('logo')  # Correctly handle the uploaded logo file
             Company.objects.create(
                 user=user,
                 company_name=company_data.get('company_name'),
@@ -45,7 +46,7 @@ class RegisterView(generics.CreateAPIView):
                 description=company_data.get('description'),
                 industry=industry,
                 registration_number=company_data.get('registration_number'),
-                logo=company_data.get('logo'),
+                logo=logo,  # Save the uploaded logo file
             )
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
