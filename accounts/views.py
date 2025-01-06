@@ -36,7 +36,6 @@ class RegisterView(generics.CreateAPIView):
             company_data = self.request.data
             industry_id = company_data.get('industry_id')
             industry = Industry.objects.get(id=industry_id)
-            logo = self.request.FILES.get('logo')  # Correctly handle the uploaded logo file
             Company.objects.create(
                 user=user,
                 company_name=company_data.get('company_name'),
@@ -46,7 +45,7 @@ class RegisterView(generics.CreateAPIView):
                 description=company_data.get('description'),
                 industry=industry,
                 registration_number=company_data.get('registration_number'),
-                logo=logo,  # Save the uploaded logo file
+                logo=company_data.get('logo'),
             )
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
