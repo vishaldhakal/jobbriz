@@ -45,6 +45,7 @@ class RegisterView(generics.CreateAPIView):
                 description=company_data.get('description'),
                 industry=industry,
                 registration_number=company_data.get('registration_number'),
+                established_date=company_data.get('established_date'),
             )
             if company_data.get('logo'):
                 company.logo = company_data.get('logo')
