@@ -669,56 +669,40 @@ class AllGroupsSearchView(APIView):
             query = models.Q(title__icontains=search_group)
 
         # Search in Major Groups (1-digit code)
-        major_groups = MajorGroup.objects.filter(query).values(
-            'code', 'title', 'slug', 'description'
-        )
+        major_groups = MajorGroup.objects.filter(query).values('code', 'title')
 
         # Search in Sub Major Groups (2-digit code)
-        sub_major_groups = SubMajorGroup.objects.filter(query).values(
-            'code', 'title', 'slug', 'description'
-        )
+        sub_major_groups = SubMajorGroup.objects.filter(query).values('code', 'title')
 
         # Search in Minor Groups (3-digit code)
-        minor_groups = MinorGroup.objects.filter(query).values(
-            'code', 'title', 'slug', 'description'
-        )
+        minor_groups = MinorGroup.objects.filter(query).values('code', 'title')
 
         # Search in Unit Groups (4-digit code)
-        unit_groups = UnitGroup.objects.filter(query).values(
-            'code', 'title', 'slug', 'description'
-        )
+        unit_groups = UnitGroup.objects.filter(query).values('code', 'title')
 
         results = {
             'major_groups': [
                 {
                     'code': group['code'],
-                    'title': group['title'],
-                    'description': group['description'],
-                    'slug': group['slug']
+                    'title': group['title']
                 } for group in major_groups
             ],
             'sub_major_groups': [
                 {
                     'code': group['code'],
-                    'title': group['title'],
-                    'description': group['description'],
-                    'slug': group['slug']
+                    'title': group['title']
                 } for group in sub_major_groups
             ],
             'minor_groups': [
                 {
                     'code': group['code'],
-                    'title': group['title'],
-                    'description': group['description'],
-                    'slug': group['slug']
+                    'title': group['title']
                 } for group in minor_groups
             ],
             'unit_groups': [
                 {
                     'code': group['code'],
-                    'title': group['title'],
-                    'description': group['description'],
-                    'slug': group['slug']
+                    'title': group['title']
                 } for group in unit_groups
             ]
         }
