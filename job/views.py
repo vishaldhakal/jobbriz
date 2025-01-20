@@ -128,40 +128,80 @@ class JobPostListCreateView(generics.ListCreateAPIView):
                 models.Q(requirements__icontains=keywords)
             )
         
-        # ISCO Classification filters
+        # ISCO Classification smart search
+        search_group = self.request.query_params.get('search_group')
+        if search_group:
+            classification_query = models.Q()
+            
+            # Check if the search term contains only digits
+            if search_group.isdigit():
+                code_length = len(search_group)
+                
+                # Search based on code length
+                if code_length == 1:
+                    # Major Group (1-digit)
+                    classification_query |= models.Q(
+                        unit_group__minor_group__sub_major_group__major_group__code=search_group
+                    )
+                elif code_length == 2:
+                    # Sub-Major Group (2-digits)
+                    classification_query |= models.Q(
+                        unit_group__minor_group__sub_major_group__code=search_group
+                    )
+                elif code_length == 3:
+                    # Minor Group (3-digits)
+                    classification_query |= models.Q(
+                        unit_group__minor_group__code=search_group
+                    )
+                elif code_length == 4:
+                    # Unit Group (4-digits)
+                    classification_query |= models.Q(
+                        unit_group__code=search_group
+                    )
+            else:
+                # Search in titles across all group levels
+                classification_query |= models.Q(
+                    unit_group__minor_group__sub_major_group__major_group__title__icontains=search_group
+                ) | models.Q(
+                    unit_group__minor_group__sub_major_group__title__icontains=search_group
+                ) | models.Q(
+                    unit_group__minor_group__title__icontains=search_group
+                ) | models.Q(
+                    unit_group__title__icontains=search_group
+                )
+            
+            if classification_query:
+                queryset = queryset.filter(classification_query)
+        
+        # Original exact filters (keep these for backward compatibility)
         major_groups = self.request.query_params.get('major_groups')
         sub_major_groups = self.request.query_params.get('sub_major_groups')
         minor_groups = self.request.query_params.get('minor_groups')
         unit_groups = self.request.query_params.get('unit_groups')
         
-        classification_query = models.Q()
-        
         if major_groups:
             major_group_list = major_groups.split(',')
-            classification_query &= models.Q(
+            queryset = queryset.filter(
                 unit_group__minor_group__sub_major_group__major_group__code__in=major_group_list
             )
         
         if sub_major_groups:
             sub_major_group_list = sub_major_groups.split(',')
-            classification_query &= models.Q(
+            queryset = queryset.filter(
                 unit_group__minor_group__sub_major_group__code__in=sub_major_group_list
             )
         
         if minor_groups:
             minor_group_list = minor_groups.split(',')
-            classification_query &= models.Q(
+            queryset = queryset.filter(
                 unit_group__minor_group__code__in=minor_group_list
             )
         
         if unit_groups:
             unit_group_list = unit_groups.split(',')
-            classification_query &= models.Q(
+            queryset = queryset.filter(
                 unit_group__code__in=unit_group_list
             )
-        
-        if classification_query:
-            queryset = queryset.filter(classification_query)
             
         # Location filter
         location = self.request.query_params.get('location')
