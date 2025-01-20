@@ -44,4 +44,5 @@ urlpatterns = [
 
     path('upload-isco-data/', views.UploadISCODataView.as_view(), name='upload_isco_data'),
 
+    path('search-groups/', views.AllGroupsSearchView.as_view(), name='groups-search'),
 ] 

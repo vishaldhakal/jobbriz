@@ -128,80 +128,40 @@ class JobPostListCreateView(generics.ListCreateAPIView):
                 models.Q(requirements__icontains=keywords)
             )
         
-        # ISCO Classification smart search
-        search_group = self.request.query_params.get('search_group')
-        if search_group:
-            classification_query = models.Q()
-            
-            # Check if the search term contains only digits
-            if search_group.isdigit():
-                code_length = len(search_group)
-                
-                # Search based on code length
-                if code_length == 1:
-                    # Major Group (1-digit)
-                    classification_query |= models.Q(
-                        unit_group__minor_group__sub_major_group__major_group__code=search_group
-                    )
-                elif code_length == 2:
-                    # Sub-Major Group (2-digits)
-                    classification_query |= models.Q(
-                        unit_group__minor_group__sub_major_group__code=search_group
-                    )
-                elif code_length == 3:
-                    # Minor Group (3-digits)
-                    classification_query |= models.Q(
-                        unit_group__minor_group__code=search_group
-                    )
-                elif code_length == 4:
-                    # Unit Group (4-digits)
-                    classification_query |= models.Q(
-                        unit_group__code=search_group
-                    )
-            else:
-                # Search in titles across all group levels
-                classification_query |= models.Q(
-                    unit_group__minor_group__sub_major_group__major_group__title__icontains=search_group
-                ) | models.Q(
-                    unit_group__minor_group__sub_major_group__title__icontains=search_group
-                ) | models.Q(
-                    unit_group__minor_group__title__icontains=search_group
-                ) | models.Q(
-                    unit_group__title__icontains=search_group
-                )
-            
-            if classification_query:
-                queryset = queryset.filter(classification_query)
-        
-        # Original exact filters (keep these for backward compatibility)
+        # ISCO Classification filters
         major_groups = self.request.query_params.get('major_groups')
         sub_major_groups = self.request.query_params.get('sub_major_groups')
         minor_groups = self.request.query_params.get('minor_groups')
         unit_groups = self.request.query_params.get('unit_groups')
         
+        classification_query = models.Q()
+        
         if major_groups:
             major_group_list = major_groups.split(',')
-            queryset = queryset.filter(
+            classification_query &= models.Q(
                 unit_group__minor_group__sub_major_group__major_group__code__in=major_group_list
             )
         
         if sub_major_groups:
             sub_major_group_list = sub_major_groups.split(',')
-            queryset = queryset.filter(
+            classification_query &= models.Q(
                 unit_group__minor_group__sub_major_group__code__in=sub_major_group_list
             )
         
         if minor_groups:
             minor_group_list = minor_groups.split(',')
-            queryset = queryset.filter(
+            classification_query &= models.Q(
                 unit_group__minor_group__code__in=minor_group_list
             )
         
         if unit_groups:
             unit_group_list = unit_groups.split(',')
-            queryset = queryset.filter(
+            classification_query &= models.Q(
                 unit_group__code__in=unit_group_list
             )
+        
+        if classification_query:
+            queryset = queryset.filter(classification_query)
             
         # Location filter
         location = self.request.query_params.get('location')
@@ -687,3 +647,92 @@ class UploadISCODataView(APIView):
             return Response({"error": "MinorGroup matching query does not exist"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class AllGroupsSearchView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        search_group = request.query_params.get('search_group', '').strip()
+
+        if not search_group:
+            return Response(
+                {"error": "search_group parameter is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Determine if search is by code (digits) or title (string)
+        is_code_search = search_group.isdigit()
+        
+        if is_code_search:
+            query = models.Q(code__icontains=search_group)
+        else:
+            query = models.Q(title__icontains=search_group)
+
+        # Search in Major Groups (1-digit code)
+        major_groups = MajorGroup.objects.filter(query).values(
+            'code', 'title', 'slug', 'description'
+        )
+
+        # Search in Sub Major Groups (2-digit code)
+        sub_major_groups = SubMajorGroup.objects.filter(query).values(
+            'code', 'title', 'slug', 'description'
+        )
+
+        # Search in Minor Groups (3-digit code)
+        minor_groups = MinorGroup.objects.filter(query).values(
+            'code', 'title', 'slug', 'description'
+        )
+
+        # Search in Unit Groups (4-digit code)
+        unit_groups = UnitGroup.objects.filter(query).values(
+            'code', 'title', 'slug', 'description'
+        )
+
+        results = {
+            'major_groups': [
+                {
+                    'code': group['code'],
+                    'title': group['title'],
+                    'description': group['description'],
+                    'slug': group['slug']
+                } for group in major_groups
+            ],
+            'sub_major_groups': [
+                {
+                    'code': group['code'],
+                    'title': group['title'],
+                    'description': group['description'],
+                    'slug': group['slug']
+                } for group in sub_major_groups
+            ],
+            'minor_groups': [
+                {
+                    'code': group['code'],
+                    'title': group['title'],
+                    'description': group['description'],
+                    'slug': group['slug']
+                } for group in minor_groups
+            ],
+            'unit_groups': [
+                {
+                    'code': group['code'],
+                    'title': group['title'],
+                    'description': group['description'],
+                    'slug': group['slug']
+                } for group in unit_groups
+            ]
+        }
+
+        # Add count information
+        counts = {
+            'major_groups': len(results['major_groups']),
+            'sub_major_groups': len(results['sub_major_groups']),
+            'minor_groups': len(results['minor_groups']),
+            'unit_groups': len(results['unit_groups']),
+            'total': sum(len(groups) for groups in results.values())
+        }
+
+        return Response({
+            'counts': counts,
+            'results': results
+        })
