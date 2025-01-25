@@ -664,7 +664,7 @@ class AllGroupsSearchView(APIView):
         is_code_search = search_group.isdigit()
         
         if is_code_search:
-            query = models.Q(code__icontains=search_group)
+            query = models.Q(code__startswith=search_group)
         else:
             query = models.Q(title__icontains=search_group)
 
