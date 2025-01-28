@@ -17,6 +17,7 @@ from .serializers import (
 )
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
+from django.utils.text import slugify
 
 User = get_user_model()
 
@@ -71,6 +72,12 @@ class JobSeekerDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = JobSeekerSerializer2
     permission_classes = (permissions.IsAuthenticated,)
     lookup_field = 'slug'
+
+    def get_object(self):
+        slug = self.kwargs.get('slug')
+        slugified_slug = slugify(slug)
+        self.kwargs['slug'] = slugified_slug
+        return super().get_object()
 
     def get_serializer_class(self):
         if self.request.method == 'PATCH' or self.request.method == 'PUT' or self.request.method == 'POST':
